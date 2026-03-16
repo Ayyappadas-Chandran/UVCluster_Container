@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/black"
+    tools:context=".HoverModeFragment">
+
+    <ImageView
+        android:id="@+id/imageView2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="-350dp"
+        android:layout_marginTop="-100dp"
+        android:src="@drawable/image_glow_thermal"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <ImageView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="-100dp"
+        android:layout_marginEnd="-400dp"
+        android:src="@drawable/image_glow_thermal"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <com.suprajit.uvcluster.ui.customWidget.SairaRegularTextView
+        android:id="@+id/tvOdoLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="19dp"
+        android:text="odo"
+        android:textColor="@color/hoverModeRed"
+        android:textSize="23sp"
+        app:layout_constraintBottom_toTopOf="@id/tvSpeed"
+        app:layout_constraintEnd_toEndOf="@id/tvSpeed"
+        app:layout_constraintStart_toStartOf="@id/tvSpeed"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <com.suprajit.uvcluster.ui.customWidget.SairaRegularTextView
+        android:id="@+id/tvODo"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:text="1300 km"
+        android:textColor="@color/white"
+        android:textSize="23sp"
+        app:layout_constraintBottom_toTopOf="@+id/tvSpeed"
+        app:layout_constraintEnd_toEndOf="@id/tvOdoLabel"
+        app:layout_constraintStart_toStartOf="@id/tvOdoLabel"
+        app:layout_constraintTop_toBottomOf="@id/tvOdoLabel"
+        app:layout_constraintVertical_bias="0.0" />
+
+
+    <com.suprajit.uvcluster.ui.customWidget.SairaRegularTextView
+        android:id="@+id/tvSpeedUnit"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="km/h"
+        android:textColor="@color/white"
+        android:textSize="20sp"
+        app:layout_constraintEnd_toEndOf="@id/tvSpeed"
+        app:layout_constraintStart_toStartOf="@id/tvSpeed"
+        app:layout_constraintTop_toBottomOf="@id/tvSpeed" />
+
+
+    <com.suprajit.uvcluster.ui.customWidget.BrutalTypeTextView
+        android:id="@+id/tvHoverMode"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="123dp"
+        android:text="hover mode"
+        android:textAllCaps="true"
+        android:textColor="@color/hoverModeRed"
+        android:textFontWeight="500"
+        android:textSize="30sp"
+        app:layout_constraintEnd_toEndOf="@id/tvSpeed"
+        app:layout_constraintStart_toStartOf="@id/tvSpeed"
+        app:layout_constraintTop_toBottomOf="@id/tvSpeedUnit" />
+
+    <TextView
+        android:id="@+id/tvBatteryCriticallyLow"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:fontFamily="sans-serif"
+        android:text="Battery Critically Low"
+        android:textAllCaps="true"
+        android:textColor="@color/white"
+        android:textFontWeight="700"
+        android:textSize="20sp"
+        app:layout_constraintEnd_toEndOf="@id/tvHoverMode"
+        app:layout_constraintStart_toStartOf="@id/tvHoverMode"
+        app:layout_constraintTop_toBottomOf="@id/tvHoverMode" />
+
+    <ImageView
+        android:id="@+id/ivSpeedLeft"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="125dp"
+        android:layout_marginEnd="115dp"
+        android:src="@drawable/image_speed_left"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <ImageView
+        android:id="@+id/ivSpeedRight"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="115dp"
+        android:layout_marginTop="125dp"
+        android:src="@drawable/image_speed_right"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <ImageView
+        android:id="@+id/bgBottom"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:foregroundGravity="center"
+        android:src="@drawable/group_627272"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <TextView
+        android:id="@+id/tvSpeed"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="108dp"
+        android:elevation="20dp"
+        android:fontFamily="@font/eurostile"
+        android:gravity="center"
+        android:textColor="@color/white"
+        android:textSize="123sp"
+        app:layout_constraintEnd_toStartOf="@id/ivSpeedLeft"
+        app:layout_constraintStart_toEndOf="@id/ivSpeedRight"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:text="- - -" />
+
+
+</androidx.constraintlayout.widget.ConstraintLayout>
+
+ 

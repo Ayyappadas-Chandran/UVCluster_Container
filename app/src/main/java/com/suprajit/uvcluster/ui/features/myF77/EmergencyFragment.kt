@@ -1,0 +1,140 @@
+package com.suprajit.uvcluster.ui.features.myF77
+
+import android.graphics.RenderEffect
+import android.graphics.Shader
+import android.os.Build
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.ImageView
+import android.widget.TextView
+import androidx.appcompat.app.AlertDialog
+import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import androidx.navigation.fragment.findNavController
+import com.suprajit.uvcluster.R
+import com.suprajit.uvcluster.domain.ennumerate.ButtonNavigation
+import com.suprajit.uvcluster.ui.viewModel.CarViewModel
+import com.suprajit.uvcluster.utils.Utilities
+import com.suprajit.uvcluster.utils.Utilities.setOnSoundClickListener
+import com.suprajit.uvcluster.utils.ViewModelFactory
+import kotlinx.coroutines.launch
+
+
+class EmergencyFragment : Fragment() {
+    private lateinit var ivBack: ImageView
+    private lateinit var tvEmergencySOS: TextView
+    private lateinit var clEmergency: ConstraintLayout
+    //for bug no 46 - pop up exit on button press
+    private var emergencySosDialog : AlertDialog? = null
+    private val carViewModel by activityViewModels<CarViewModel> { ViewModelFactory(context = requireContext()) }
+
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View? {
+        return inflater.inflate(R.layout.fragment_emergency, container, false)
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        initViews(view)
+        initObserver()
+        initClickListener()
+    }
+
+    private fun initObserver() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                launch {
+                    carViewModel.swiftButton.collect { swiftButton ->
+                        val button = Utilities.getButtonState(swiftButton)
+                        if(button == ButtonNavigation.None) return@collect
+                        handleButtonNavigation(button.ordinal)
+                    }
+                }
+            }
+        }
+    }
+
+    fun handleButtonNavigation(button: Int) {
+        when (button) {
+            ButtonNavigation.Enter.ordinal -> {
+                tvEmergencySOS.performClick()
+            }
+
+            ButtonNavigation.Back.ordinal -> {
+                //for bug no 46 - pop up exit on button press
+                if(emergencySosDialog?.isShowing == true){
+                    emergencySosDialog?.dismiss()
+                }else{
+                    findNavController().navigateUp()
+                }
+            }
+        }
+    }
+
+    /**
+     * Binds UI components from the provided root view using their IDs.
+     *
+     * @param view The root view containing the layout elements.
+     *
+     * Initializes:
+     * - tvBack ,tvEmergencySOS (TextViews)
+     * - clEmergency (ConstraintLayout)
+     */
+    private fun initViews(view: View) {
+        ivBack = view.findViewById(R.id.ivBack)
+        tvEmergencySOS = view.findViewById(R.id.tvEmergencySOS)
+        clEmergency = view.findViewById(R.id.clEmergency)
+    }
+
+    /**
+     * Initializes click listeners for UI components.
+     */
+    private fun initClickListener() {
+        tvEmergencySOS.setOnSoundClickListener(requireContext()) {
+            showEmergencySosDialog()
+        }
+        ivBack.setOnSoundClickListener(requireContext()) {
+            findNavController().navigateUp()
+        }
+    }
+
+    /**
+     * Displays an emergency SOS dialog with a blurred background (API 31+).
+     *
+     * Applies a blur effect to the root view while the dialog is visible,
+     * and removes it when dismissed.
+     */
+    private fun showEmergencySosDialog() {
+        // Blur the background
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val blur = RenderEffect.createBlurEffect(10f, 10f, Shader.TileMode.CLAMP)
+            clEmergency.setRenderEffect(blur)
+        }
+        val dialogView =
+            LayoutInflater.from(requireContext()).inflate(R.layout.dialog_complete_message, null)
+        val tvTitle = dialogView.findViewById<TextView>(R.id.tvTitle)
+        val tvMessage = dialogView.findViewById<TextView>(R.id.tvMessage)
+        //for bug no 46 - pop up exit on button press
+        emergencySosDialog = AlertDialog.Builder(requireContext())
+            .setView(dialogView)
+            .setOnDismissListener {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    clEmergency.setRenderEffect(null)
+                }
+                emergencySosDialog = null
+            }
+            .create()
+        tvTitle.text = getString(R.string.emergency_sos)
+        tvMessage.text = getString(R.string.emergency_alert_sent_to_aalbin)
+        emergencySosDialog?.show()
+    }
+
+}

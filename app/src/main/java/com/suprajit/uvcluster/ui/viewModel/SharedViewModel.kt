@@ -1,0 +1,133 @@
+package com.suprajit.uvcluster.ui.viewModel
+
+import android.os.Build
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.ViewModel
+import com.suprajit.uvcluster.domain.dataModel.ChildItem
+import com.suprajit.uvcluster.domain.dataModel.RangeLimit
+import com.suprajit.uvcluster.domain.manager.PreferenceManager
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+
+/**
+ * ViewModel to manage and expose child item click events in the Settings menu.
+ */
+class SharedViewModel(private val preferenceManager: PreferenceManager) : ViewModel() {
+    var hasThemeConfigChanged = false
+    var hasGeneralFragmentDestroyed = false
+    val mode: String
+        get() = preferenceManager.mode
+    val batteryLimit: Int
+        get() = preferenceManager.batteryLimit
+    var speedLimit: RangeLimit = RangeLimit(0, 999)
+    var odoLimit: RangeLimit = RangeLimit(0, 999999)
+    var rangeLimit: RangeLimit = RangeLimit(0, 999)
+    var whPerKmLimit: RangeLimit = RangeLimit(0, 999)
+    var rideLimit: RangeLimit = RangeLimit(0, 999)
+    var socLimit: RangeLimit = RangeLimit(0, 100)
+    var peakMotTemp = 0f
+    var peakHeatSinkTemp = 0f
+    val isAutoBrightnessEnabled: Boolean
+        get() = preferenceManager.isAutoBrightnessEnabled
+    val regenValue: Int
+        get() = preferenceManager.regenValue
+    val isOtaComplete: Boolean
+        get() = preferenceManager.isOtaComplete
+
+    val isRadarOn: Boolean
+        get() = preferenceManager.isRadarOn
+    private var _afChildClick: MutableLiveData<Boolean> = MutableLiveData()
+    val afChildClick: LiveData<Boolean>
+        get() = _afChildClick
+
+    private var _settingsChildClick: MutableLiveData<Boolean> = MutableLiveData()
+    val settingsChildClick: LiveData<Boolean>
+        get() = _settingsChildClick
+
+    private var _rvChildClick: MutableLiveData<Pair<ChildItem?, String>> =
+        MutableLiveData()
+    val rvChildClick: LiveData<Pair<ChildItem?, String>>
+        get() = _rvChildClick
+
+    private var _settingsBlurStatus: MutableLiveData<Boolean> = MutableLiveData()
+    val settingsBlurStatus: LiveData<Boolean>
+        get() = _settingsBlurStatus
+    val distanceUnit: String
+        get() = preferenceManager.distanceUnit
+     val rideMode :String
+        get() = preferenceManager.rideMode
+    var isParkAssistEntry = false
+     val normalTimeFormat: Boolean
+        get() = preferenceManager.isNormalTimeFormat
+
+
+    private var _radarOn: MutableStateFlow<Boolean> =
+        MutableStateFlow(preferenceManager.isRadarOn)
+    val radarOn: StateFlow<Boolean> = _radarOn
+
+    fun saveUpdate(shouldUpdate: Boolean) {
+        preferenceManager.saveUpdate(shouldUpdate)
+    }
+
+    fun saveRegenValue(value: Int) {
+        preferenceManager.saveRegenValue(value)
+    }
+
+    fun saveLanguage(language: String) {
+        preferenceManager.saveLanguage(language)
+    }
+
+    fun saveMode(mode: String) {
+        preferenceManager.saveMode(mode)
+    }
+
+    fun saveBrightness(brightnessLevel: Int) {
+        preferenceManager.saveBrightness(brightnessLevel)
+    }
+
+    fun saveBrightnessState(isAuto: Boolean) {
+        preferenceManager.saveBrightnessState(isAuto)
+    }
+
+    fun saveHillHold(isHillHold: Boolean) {
+        preferenceManager.saveHillHold(isHillHold)
+    }
+
+    fun saveCustomModeAbs(isMono: Boolean) {
+        preferenceManager.saveCustomModeAbs(isMono)
+    }
+
+    fun otaCompleted(isFinish: Boolean) {
+        if (isFinish) {
+            preferenceManager.saveOtaCompleted(true)
+            preferenceManager.saveOldBuild(Build.FINGERPRINT)
+        }
+    }
+
+    fun handleSettingsBlur(shouldBlur: Boolean) {
+        _settingsBlurStatus.value = shouldBlur
+    }
+
+    fun handleAfChildClick(isClicked: Boolean) {
+        _afChildClick.value = isClicked
+    }
+
+    fun handleSettingsChildClick(isClicked: Boolean) {
+        _settingsChildClick.value = isClicked
+    }
+
+    fun handleRvChildClick(clickedItem: ChildItem? = null, type: String = "") {
+        _rvChildClick.value = Pair(clickedItem, type)
+    }
+
+    fun saveRadar(isRadarOn: Boolean) {
+        _radarOn.value = isRadarOn
+        preferenceManager.saveRadar(isRadarOn)
+    }
+    fun saveBallisticPlus(isBallisticPlus: Boolean) {
+        preferenceManager.saveBallisticPlus(isBallisticPlus)
+    }
+}
+
+

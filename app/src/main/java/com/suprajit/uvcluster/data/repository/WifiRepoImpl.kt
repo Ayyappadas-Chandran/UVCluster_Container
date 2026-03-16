@@ -1,0 +1,73 @@
+package com.suprajit.uvcluster.data.repository
+
+import com.suprajit.uvcluster.data.dataSource.WifiManagerWrapper
+import com.suprajit.uvcluster.domain.repository.WifiRepository
+import android.net.wifi.ScanResult
+
+/**
+ * Implementation of [WifiRepository] that delegates Wi-Fi operations to [WifiManagerWrapper].
+ *
+ * @param wifiManagerWrapper Handles the actual Wi-Fi logic.
+ */
+class WifiRepoImpl(
+    private val wifiManagerWrapper: WifiManagerWrapper
+) : WifiRepository {
+
+    /** Returns `true` if Wi-Fi is enabled. */
+    override fun isWifiEnabled(): Boolean =
+        wifiManagerWrapper.isWifiEnabled()
+
+    /** Connects to a hotspot with the given [ssid] and [password]. */
+    override fun connectHotspot(ssid: String, password: String) =
+        wifiManagerWrapper.connectHotspot(ssid, password)
+
+
+    /** Starts a Wi-Fi scan. */
+    override fun startScan() =
+        wifiManagerWrapper.startScan()
+
+
+    override fun enableWifi(enable: Boolean) {
+        wifiManagerWrapper.enableWifi(enable)
+    }
+
+    override fun wifiStateChange(callback: (Boolean) -> Unit) {
+        wifiManagerWrapper.wifiState(callback)
+    }
+
+    override fun registerWifiStateChangeReceiver() {
+        wifiManagerWrapper.registerWifiStateChangeReceiver()
+    }
+
+    override fun unregisterWifiStateChangeReceiver() {
+        wifiManagerWrapper.unregisterWifiStateChangeReceiver()
+    }
+
+    //27/01/2026
+    override fun connectionState(callBack: (Boolean) -> Unit) {
+        wifiManagerWrapper.connectionState(callBack)
+    }
+
+    /** Returns the SSID of the currently connected Wi-Fi network. */
+    override fun getConnectedWifiSSID() =
+        wifiManagerWrapper.getConnectedWifiSSID()
+
+    /** Forgets the current Wi-Fi network. */
+    override fun forgetHotspot() =
+        wifiManagerWrapper.forgetHotspot()
+
+//    /** Provides a list of scanned SSIDs via [callback].*/
+//    override fun scanResult(callback: (List<String>) -> Unit) =
+//        wifiManagerWrapper.scanResult(callback)
+override fun scanResult(callback: (List<ScanResult>) -> Unit) =
+    wifiManagerWrapper.scanResult(callback)
+
+
+
+    override fun getCurrentSignalLevel(): Int {
+        return wifiManagerWrapper.getCurrentSignalLevel()
+    }
+}
+
+
+
