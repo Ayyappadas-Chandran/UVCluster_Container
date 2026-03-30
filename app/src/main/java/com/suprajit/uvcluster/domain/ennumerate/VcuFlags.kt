@@ -183,9 +183,43 @@ object VcuMiscFlags {
     const val STAT_VCU_IMU_WORLD_CAL_MISSING       = 92
     const val STAT_VCU_IMU_FRAME_CAL_MISSING       = 93
     const val STAT_VCU_MC_CC_FEAT_EN		 = 94
+    const val STAT_VCU_ABS_WARNING_LAMP_ON         = 95
+    const val STAT_VCU_UNUSED_96         = 96
+    const val STAT_VCU_UNUSED_97  = 97
+    const val STAT_VCU_UNUSED_98  = 98
+    const val STAT_VCU_UNUSED_99  = 99
+    const val STAT_VCU_UNUSED_100 = 100
+    const val STAT_VCU_UNUSED_101 = 101
+    const val STAT_VCU_UNUSED_102 = 102
+    const val STAT_VCU_UNUSED_103 = 103
+    const val STAT_VCU_UNUSED_104 = 104
+    const val STAT_VCU_UNUSED_105 = 105
+    const val STAT_VCU_UNUSED_106 = 106
+    const val STAT_VCU_UNUSED_107 = 107
+    const val STAT_VCU_UNUSED_108 = 108
+    const val STAT_VCU_UNUSED_109 = 109
+    const val STAT_VCU_UNUSED_110 = 110
+    const val STAT_VCU_UNUSED_111 = 111
+    const val STAT_VCU_UNUSED_112 = 112
+    const val STAT_VCU_UNUSED_113 = 113
+    const val STAT_VCU_UNUSED_114 = 114
+    const val STAT_VCU_UNUSED_115 = 115
+    const val STAT_VCU_UNUSED_116 = 116
+    const val STAT_VCU_UNUSED_117 = 117
+    const val STAT_VCU_UNUSED_118 = 118
+    const val STAT_VCU_UNUSED_119 = 119
+    const val STAT_VCU_UNUSED_120 = 120
+    const val STAT_VCU_UNUSED_121 = 121
+    const val STAT_VCU_UNUSED_122 = 122
+    const val STAT_VCU_UNUSED_123 = 123
+    const val STAT_VCU_UNUSED_124 = 124
+    const val STAT_VCU_UNUSED_125 = 125
+    const val STAT_VCU_UNUSED_126 = 126
+    const val STAT_VCU_UNUSED_127 = 127
+
 
     /** Total number of valid misc status flags */
-    const val MAX_MISC_STATUS_FLAGS =95 //previously 85
+    const val MAX_MISC_STATUS_FLAGS =128 //previously 85
 }
 
 
@@ -266,55 +300,55 @@ object BmsStatusFlags {
 
 object McuFaultFlag {
 
-    /* -------- Error Bits (0–31) -------- */
+    /* -------- Error Bits (1–32) -------- */
 
-    const val SINCOS_ERROR_1 = 0
-    const val THROTTLE_ERROR_1 = 1
-    const val THROTTLE_ERROR_2 = 2
-    const val DRIVE_UNDERVOLTAGE_SW = 3
-    const val CRITICAL_OVERVOLTAGE_SW = 4
-    const val MOTOR_TEMPERATURE_ERROR = 5
-    const val OVERCURRENT_SW = 6
-    const val CONTROLLER_TEMPERATURE_ERROR = 7
-    const val CURRENT_OFFSET_ERROR = 8
-    const val OVERSPEED = 9
-    const val INT_WATCHDOG_RESET = 10
-    const val EXT_WATCHDOG_RESET = 11
-    const val EEPROM_FLASH = 12
-    const val EEPROM_STATE = 13
-    const val WRITE_ONCE_WRITE = 14
-    const val RPDO_TIMEOUT = 15
-    const val CAN_PARITY = 16
-    const val FLASH_API_INIT_ERROR = 17
-    const val RUNTIME_ERROR = 18
-    const val NMI_WATCHDOG_RESET = 19
-    const val DCSM_SAFE_COPY_RESET = 20
-    const val NMI = 21
-    const val ITRAP = 22
-    const val FLASH_ECC_SELF_TEST_FAILED = 23
-    const val RAM_ECC_SELF_TEST_FAILED = 24
-    const val ASSERT_CALLED = 25
-    const val CLA_OC = 26
-    const val ERAD_ISR_TIME = 27
-    const val ERAD_STACK_OVR = 28
-    const val MOSFET_U_HEALTH_ERROR = 29
-    const val MOSFET_V_HEALTH_ERROR = 30
-    const val MOSFET_W_HEALTH_ERROR = 31
+    const val SINCOS_ERROR_1 = 1
+    const val THROTTLE_ERROR_1 = 2
+    const val THROTTLE_ERROR_2 = 3
+    const val DRIVE_UNDERVOLTAGE_SW = 4
+    const val CRITICAL_OVERVOLTAGE_SW = 5
+    const val MOTOR_TEMPERATURE_ERROR = 6
+    const val OVERCURRENT_SW = 7
+    const val CONTROLLER_TEMPERATURE_ERROR = 8
+    const val CURRENT_OFFSET_ERROR = 9
+    const val OVERSPEED = 10
+    const val INT_WATCHDOG_RESET = 11
+    const val EXT_WATCHDOG_RESET = 12
+    const val EEPROM_FLASH = 13
+    const val EEPROM_STATE = 14
+    const val WRITE_ONCE_WRITE = 15
+    const val RPDO_TIMEOUT = 16
+    const val CAN_PARITY = 17
+    const val FLASH_API_INIT_ERROR = 18
+    const val RUNTIME_ERROR = 19
+    const val NMI_WATCHDOG_RESET = 20
+    const val DCSM_SAFE_COPY_RESET = 21
+    const val NMI = 22
+    const val ITRAP = 23
+    const val FLASH_ECC_SELF_TEST_FAILED = 24
+    const val RAM_ECC_SELF_TEST_FAILED = 25
+    const val ASSERT_CALLED = 26
+    const val CLA_OC = 27
+    const val ERAD_ISR_TIME = 28
+    const val ERAD_STACK_OVR = 29
+    const val MOSFET_U_HEALTH_ERROR = 30
+    const val MOSFET_V_HEALTH_ERROR = 31
+    const val MOSFET_W_HEALTH_ERROR = 32
 
-    /* -------- Error Bits (32–63) -------- */
+    /* -------- Error Bits (33–44) -------- */
 
-    const val MOSFET_U_DRIVER_ERROR = 32
-    const val MOSFET_V_DRIVER_ERROR = 33
-    const val MOSFET_W_DRIVER_ERROR = 34
-    const val FRWD_REV_ERROR = 35
-    const val ADC_OCSC_SELF_TEST_FAILED = 36
-    const val FWC_VS_ERROR = 37
-    const val PIE_VECT_CORRUPT = 38
-    const val PMIC_FAULT = 39
-    const val OTP_EMPTY_INVALID = 40
-    const val U_PHASE_IMBALANCE = 41
-    const val V_PHASE_IMBALANCE = 42
-    const val W_PHASE_IMBALANCE = 43
+    const val MOSFET_U_DRIVER_ERROR = 33
+    const val MOSFET_V_DRIVER_ERROR = 34
+    const val MOSFET_W_DRIVER_ERROR = 35
+    const val FRWD_REV_ERROR = 36
+    const val ADC_OCSC_SELF_TEST_FAILED = 37
+    const val FWC_VS_ERROR = 38
+    const val PIE_VECT_CORRUPT = 39
+    const val PMIC_FAULT = 40
+    const val OTP_EMPTY_INVALID = 41
+    const val U_PHASE_IMBALANCE = 42
+    const val V_PHASE_IMBALANCE = 43
+    const val W_PHASE_IMBALANCE = 44
 
     /** Total number of valid VCU misc flags */
     const val MAX_VCU_MISC_FLAGS = 44
@@ -322,45 +356,45 @@ object McuFaultFlag {
 
 object McuPmicFaultFlag {
 
-    /* -------- Error Bits (0–31) -------- */
+    /* -------- Error Bits (1–32) -------- */
 
-    const val VDD5_ILIM = 0
-    const val VDD3_5_ILIM = 1
-    const val VDD5_OT = 2
-    const val VDD_3_5_OT = 3
-    const val CFG_CRC_ERR = 4
-    const val EE_CRC_ERR = 5
-    const val WD_FAIL_CNT_ERROR = 6
-    const val ABIST_ERR = 7
-    const val LBIST_ERR = 8
-    const val NRES_ERR = 9
-    const val SPI_ERR = 10
-    const val LOCLK = 11
-    const val MCU_ERR = 12
-    const val WD_ERR = 13
-    const val ENDRV_ERR = 14
-    const val DEVICE_STATE_ERR = 15
-    const val VBATP_OV = 16
-    const val VBATP_UV = 17
-    const val VCP17_OV = 18
-    const val VCP12_OV = 19
-    const val VCP12_UV = 20
-    const val VDD6_OV = 21
-    const val VDD6_UV = 22
-    const val VDD5_OV = 23
-    const val VDD5_UV = 24
-    const val VDD3_5_OV = 25
-    const val VDD3_5_UV = 26
-    const val WD_CFG_ERR = 27
-    const val WD_RST_EN_ERR = 28
-    const val WD_WIN1_CFG_ERR = 29
-    const val WD_WIN2_CFG_ERR = 30
-    const val WD_SYNC_ERR = 31
+    const val VDD5_ILIM = 1
+    const val VDD3_5_ILIM = 2
+    const val VDD5_OT = 3
+    const val VDD_3_5_OT = 4
+    const val CFG_CRC_ERR = 5
+    const val EE_CRC_ERR = 6
+    const val WD_FAIL_CNT_ERROR = 7
+    const val ABIST_ERR = 8
+    const val LBIST_ERR = 9
+    const val NRES_ERR = 10
+    const val SPI_ERR = 11
+    const val LOCLK = 12
+    const val MCU_ERR = 13
+    const val WD_ERR = 14
+    const val ENDRV_ERR = 15
+    const val DEVICE_STATE_ERR = 16
+    const val VBATP_OV = 17
+    const val VBATP_UV = 18
+    const val VCP17_OV = 19
+    const val VCP12_OV = 20
+    const val VCP12_UV = 21
+    const val VDD6_OV = 22
+    const val VDD6_UV = 23
+    const val VDD5_OV = 24
+    const val VDD5_UV = 25
+    const val VDD3_5_OV = 26
+    const val VDD3_5_UV = 27
+    const val WD_CFG_ERR = 28
+    const val WD_RST_EN_ERR = 29
+    const val WD_WIN1_CFG_ERR = 30
+    const val WD_WIN2_CFG_ERR = 31
+    const val WD_SYNC_ERR = 32
 
-    /* -------- Error Bits (32–63) -------- */
+    /* -------- Error Bits (33–34) -------- */
 
-    const val DIAG_EXIT_ERR = 32
-    const val TURN_ON_DIAG_STATE_ERR = 33
+    const val DIAG_EXIT_ERR = 33
+    const val TURN_ON_DIAG_STATE_ERR = 34
 
     /** Total number of valid PMIC diagnostic flags */
     const val MAX_PMIC_DIAG_FLAGS = 34

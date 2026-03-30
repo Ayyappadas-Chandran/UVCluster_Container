@@ -299,7 +299,8 @@ class DashboardFragment : Fragment() {
                         viewModel.setMotorArmed(isMotorArmed)
                         val rideModes = it.rideMode
                         val isBallistic = it.rideMode == 3
-                        ivBallisticPlus.visibility = if (viewModel.isBallisticPlus && isBallistic) View.VISIBLE else View.INVISIBLE
+                        ivBallisticPlus.visibility = if (viewModel.isSurgeMode && isBallistic) View.VISIBLE else View.INVISIBLE
+                        d("DashboardFragment", "isBallisticPlus: ${viewModel.isSurgeMode && isBallistic}")
                         updateThemeMode(rideModes)
                         val regenValue = it.regenLevel.applyMinMax(RangeLimit(0, 9))
                         viewModel.setRegenValue(regenValue)
@@ -393,10 +394,9 @@ class DashboardFragment : Fragment() {
 
                 launch {
                     carViewModel.ballisticPlus.collect { isSurgeMode ->
-                        viewModel.isBallisticPlus=isSurgeMode
                         //ivBallisticPlus.visibility = if (isSurgeMode && viewModel.isBallistic) View.VISIBLE else View.INVISIBLE
 
-                        //viewModel.ballisticPlus(isSurgeMode)
+                        viewModel.ballisticPlus(isSurgeMode)
                         d("DashboardFragment", "surgeMode:$isSurgeMode")
                     }
                 }

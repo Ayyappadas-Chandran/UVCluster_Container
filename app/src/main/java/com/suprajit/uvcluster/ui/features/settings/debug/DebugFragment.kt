@@ -86,6 +86,7 @@ class DebugFragment : Fragment() {
     data class BmsFlag(val bit: Int, val label: String, val severity: Severity)
     data class McuFlag(val bit: Int, val label: String, val severity: Severity)
     class McuPmicFlag(val bit: Int, val label: String, val severity: Severity)
+    class MiscFlag(val bit: Int, val label: String, val severity: Severity)
 
     private var logProcess: Process? = null
     private var logThread: Thread? = null
@@ -231,98 +232,290 @@ class DebugFragment : Fragment() {
 
     private val mcuFlags = listOf(
 
-        /* -------- Error Bits (0–31) -------- */
+        /* -------- Error Bits (1–32) -------- */
 
-        McuFlag(0, "SINCOS_ERROR_1", Severity.ERROR),
-        McuFlag(1, "THROTTLE_ERROR_1", Severity.ERROR),
-        McuFlag(2, "THROTTLE_ERROR_2", Severity.ERROR),
-        McuFlag(3, "DRIVE_UNDERVOLTAGE_SW", Severity.ERROR),
-        McuFlag(4, "CRITICAL_OVERVOLTAGE_SW", Severity.ERROR),
-        McuFlag(5, "MOTOR_TEMPERATURE_ERROR", Severity.ERROR),
-        McuFlag(6, "OVERCURRENT_SW", Severity.ERROR),
-        McuFlag(7, "CONTROLLER_TEMPERATURE_ERROR", Severity.ERROR),
-        McuFlag(8, "CURRENT_OFFSET_ERROR", Severity.ERROR),
-        McuFlag(9, "OVERSPEED", Severity.ERROR),
-        McuFlag(10, "INT_WATCHDOG_RESET", Severity.ERROR),
-        McuFlag(11, "EXT_WATCHDOG_RESET", Severity.ERROR),
-        McuFlag(12, "EEPROM_FLASH", Severity.ERROR),
-        McuFlag(13, "EEPROM_STATE", Severity.ERROR),
-        McuFlag(14, "WRITE_ONCE_WRITE", Severity.ERROR),
-        McuFlag(15, "RPDO_TIMEOUT", Severity.ERROR),
-        McuFlag(16, "CAN_PARITY", Severity.ERROR),
-        McuFlag(17, "FLASH_API_INIT_ERROR", Severity.ERROR),
-        McuFlag(18, "RUNTIME_ERROR", Severity.ERROR),
-        McuFlag(19, "NMI_WATCHDOG_RESET", Severity.ERROR),
-        McuFlag(20, "DCSM_SAFE_COPY_RESET", Severity.ERROR),
-        McuFlag(21, "NMI", Severity.ERROR),
-        McuFlag(22, "ITRAP", Severity.ERROR),
-        McuFlag(23, "FLASH_ECC_SELF_TEST_FAILED", Severity.ERROR),
-        McuFlag(24, "RAM_ECC_SELF_TEST_FAILED", Severity.ERROR),
-        McuFlag(25, "ASSERT_CALLED", Severity.ERROR),
-        McuFlag(26, "CLA_OC", Severity.ERROR),
-        McuFlag(27, "ERAD_ISR_TIME", Severity.ERROR),
-        McuFlag(28, "ERAD_STACK_OVR", Severity.ERROR),
-        McuFlag(29, "MOSFET_U_HEALTH_ERROR", Severity.ERROR),
-        McuFlag(30, "MOSFET_V_HEALTH_ERROR", Severity.ERROR),
-        McuFlag(31, "MOSFET_W_HEALTH_ERROR", Severity.ERROR),
+        McuFlag(1, "SINCOS_ERROR_1", Severity.ERROR),
+        McuFlag(2, "THROTTLE_ERROR_1", Severity.ERROR),
+        McuFlag(3, "THROTTLE_ERROR_2", Severity.ERROR),
+        McuFlag(4, "DRIVE_UNDERVOLTAGE_SW", Severity.ERROR),
+        McuFlag(5, "CRITICAL_OVERVOLTAGE_SW", Severity.ERROR),
+        McuFlag(6, "MOTOR_TEMPERATURE_ERROR", Severity.ERROR),
+        McuFlag(7, "OVERCURRENT_SW", Severity.ERROR),
+        McuFlag(8, "CONTROLLER_TEMPERATURE_ERROR", Severity.ERROR),
+        McuFlag(9, "CURRENT_OFFSET_ERROR", Severity.ERROR),
+        McuFlag(10, "OVERSPEED", Severity.ERROR),
+        McuFlag(11, "INT_WATCHDOG_RESET", Severity.ERROR),
+        McuFlag(12, "EXT_WATCHDOG_RESET", Severity.ERROR),
+        McuFlag(13, "EEPROM_FLASH", Severity.ERROR),
+        McuFlag(14, "EEPROM_STATE", Severity.ERROR),
+        McuFlag(15, "WRITE_ONCE_WRITE", Severity.ERROR),
+        McuFlag(16, "RPDO_TIMEOUT", Severity.ERROR),
+        McuFlag(17, "CAN_PARITY", Severity.ERROR),
+        McuFlag(18, "FLASH_API_INIT_ERROR", Severity.ERROR),
+        McuFlag(19, "RUNTIME_ERROR", Severity.ERROR),
+        McuFlag(20, "NMI_WATCHDOG_RESET", Severity.ERROR),
+        McuFlag(21, "DCSM_SAFE_COPY_RESET", Severity.ERROR),
+        McuFlag(22, "NMI", Severity.ERROR),
+        McuFlag(23, "ITRAP", Severity.ERROR),
+        McuFlag(24, "FLASH_ECC_SELF_TEST_FAILED", Severity.ERROR),
+        McuFlag(25, "RAM_ECC_SELF_TEST_FAILED", Severity.ERROR),
+        McuFlag(26, "ASSERT_CALLED", Severity.ERROR),
+        McuFlag(27, "CLA_OC", Severity.ERROR),
+        McuFlag(28, "ERAD_ISR_TIME", Severity.ERROR),
+        McuFlag(29, "ERAD_STACK_OVR", Severity.ERROR),
+        McuFlag(30, "MOSFET_U_HEALTH_ERROR", Severity.ERROR),
+        McuFlag(31, "MOSFET_V_HEALTH_ERROR", Severity.ERROR),
+        McuFlag(32, "MOSFET_W_HEALTH_ERROR", Severity.ERROR),
 
-        /* -------- Error Bits (32–63) -------- */
+        /* -------- Error Bits (33–44) -------- */
 
-        McuFlag(32, "MOSFET_U_DRIVER_ERROR", Severity.ERROR),
-        McuFlag(33, "MOSFET_V_DRIVER_ERROR", Severity.ERROR),
-        McuFlag(34, "MOSFET_W_DRIVER_ERROR", Severity.ERROR),
-        McuFlag(35, "FRWD_REV_ERROR", Severity.ERROR),
-        McuFlag(36, "ADC_OCSC_SELF_TEST_FAILED", Severity.ERROR),
-        McuFlag(37, "FWC_VS_ERROR", Severity.ERROR),
-        McuFlag(38, "PIE_VECT_CORRUPT", Severity.ERROR),
-        McuFlag(39, "PMIC_FAULT", Severity.ERROR),
-        McuFlag(40, "OTP_EMPTY_INVALID", Severity.ERROR),
-        McuFlag(41, "U_PHASE_IMBALANCE", Severity.ERROR),
-        McuFlag(42, "V_PHASE_IMBALANCE", Severity.ERROR),
-        McuFlag(43, "W_PHASE_IMBALANCE", Severity.ERROR)
+        McuFlag(33, "MOSFET_U_DRIVER_ERROR", Severity.ERROR),
+        McuFlag(34, "MOSFET_V_DRIVER_ERROR", Severity.ERROR),
+        McuFlag(35, "MOSFET_W_DRIVER_ERROR", Severity.ERROR),
+        McuFlag(36, "FRWD_REV_ERROR", Severity.ERROR),
+        McuFlag(37, "ADC_OCSC_SELF_TEST_FAILED", Severity.ERROR),
+        McuFlag(38, "FWC_VS_ERROR", Severity.ERROR),
+        McuFlag(39, "PIE_VECT_CORRUPT", Severity.ERROR),
+        McuFlag(40, "PMIC_FAULT", Severity.ERROR),
+        McuFlag(41, "OTP_EMPTY_INVALID", Severity.ERROR),
+        McuFlag(42, "U_PHASE_IMBALANCE", Severity.ERROR),
+        McuFlag(43, "V_PHASE_IMBALANCE", Severity.ERROR),
+        McuFlag(44, "W_PHASE_IMBALANCE", Severity.ERROR),
+        McuFlag(45, "UNUSED_45", Severity.ERROR),
+        McuFlag(46, "UNUSED_46", Severity.ERROR),
+        McuFlag(47, "UNUSED_47", Severity.ERROR),
+        McuFlag(48, "UNUSED_48", Severity.ERROR),
+        McuFlag(49, "UNUSED_49", Severity.ERROR),
+        McuFlag(50, "UNUSED_50", Severity.ERROR),
+        McuFlag(51, "UNUSED_51", Severity.ERROR),
+        McuFlag(52, "UNUSED_52", Severity.ERROR),
+        McuFlag(53, "UNUSED_53", Severity.ERROR),
+        McuFlag(54, "UNUSED_54", Severity.ERROR),
+        McuFlag(55, "UNUSED_55", Severity.ERROR),
+        McuFlag(56, "UNUSED_56", Severity.ERROR),
+        McuFlag(57, "UNUSED_57", Severity.ERROR),
+        McuFlag(58, "UNUSED_58", Severity.ERROR),
+        McuFlag(59, "UNUSED_59", Severity.ERROR),
+        McuFlag(60, "UNUSED_60", Severity.ERROR),
+        McuFlag(61, "UNUSED_61", Severity.ERROR),
+        McuFlag(62, "UNUSED_62", Severity.ERROR),
+        McuFlag(63, "UNUSED_63", Severity.ERROR)
     )
 
     private val mcuPmicFlags = listOf(
 
-        /* -------- Error Bits (0–31) -------- */
+        /* -------- Error Bits (1–32) -------- */
 
-        McuPmicFlag(0, "VDD5_ILIM", Severity.ERROR),
-        McuPmicFlag(1, "VDD3_5_ILIM", Severity.ERROR),
-        McuPmicFlag(2, "VDD5_OT", Severity.ERROR),
-        McuPmicFlag(3, "VDD_3_5_OT", Severity.ERROR),
-        McuPmicFlag(4, "CFG_CRC_ERR", Severity.ERROR),
-        McuPmicFlag(5, "EE_CRC_ERR", Severity.ERROR),
-        McuPmicFlag(6, "WD_FAIL_CNT_ERROR", Severity.ERROR),
-        McuPmicFlag(7, "ABIST_ERR", Severity.ERROR),
-        McuPmicFlag(8, "LBIST_ERR", Severity.ERROR),
-        McuPmicFlag(9, "NRES_ERR", Severity.ERROR),
-        McuPmicFlag(10, "SPI_ERR", Severity.ERROR),
-        McuPmicFlag(11, "LOCLK", Severity.ERROR),
-        McuPmicFlag(12, "MCU_ERR", Severity.ERROR),
-        McuPmicFlag(13, "WD_ERR", Severity.ERROR),
-        McuPmicFlag(14, "ENDRV_ERR", Severity.ERROR),
-        McuPmicFlag(15, "DEVICE_STATE_ERR", Severity.ERROR),
-        McuPmicFlag(16, "VBATP_OV", Severity.ERROR),
-        McuPmicFlag(17, "VBATP_UV", Severity.ERROR),
-        McuPmicFlag(18, "VCP17_OV", Severity.ERROR),
-        McuPmicFlag(19, "VCP12_OV", Severity.ERROR),
-        McuPmicFlag(20, "VCP12_UV", Severity.ERROR),
-        McuPmicFlag(21, "VDD6_OV", Severity.ERROR),
-        McuPmicFlag(22, "VDD6_UV", Severity.ERROR),
-        McuPmicFlag(23, "VDD5_OV", Severity.ERROR),
-        McuPmicFlag(24, "VDD5_UV", Severity.ERROR),
-        McuPmicFlag(25, "VDD3_5_OV", Severity.ERROR),
-        McuPmicFlag(26, "VDD3_5_UV", Severity.ERROR),
-        McuPmicFlag(27, "WD_CFG_ERR", Severity.ERROR),
-        McuPmicFlag(28, "WD_RST_EN_ERR", Severity.ERROR),
-        McuPmicFlag(29, "WD_WIN1_CFG_ERR", Severity.ERROR),
-        McuPmicFlag(30, "WD_WIN2_CFG_ERR", Severity.ERROR),
-        McuPmicFlag(31, "WD_SYNC_ERR", Severity.ERROR),
+        McuPmicFlag(1, "VDD5_ILIM", Severity.ERROR),
+        McuPmicFlag(2, "VDD3_5_ILIM", Severity.ERROR),
+        McuPmicFlag(3, "VDD5_OT", Severity.ERROR),
+        McuPmicFlag(4, "VDD_3_5_OT", Severity.ERROR),
+        McuPmicFlag(5, "CFG_CRC_ERR", Severity.ERROR),
+        McuPmicFlag(6, "EE_CRC_ERR", Severity.ERROR),
+        McuPmicFlag(7, "WD_FAIL_CNT_ERROR", Severity.ERROR),
+        McuPmicFlag(8, "ABIST_ERR", Severity.ERROR),
+        McuPmicFlag(9, "LBIST_ERR", Severity.ERROR),
+        McuPmicFlag(10, "NRES_ERR", Severity.ERROR),
+        McuPmicFlag(11, "SPI_ERR", Severity.ERROR),
+        McuPmicFlag(12, "LOCLK", Severity.ERROR),
+        McuPmicFlag(13, "MCU_ERR", Severity.ERROR),
+        McuPmicFlag(14, "WD_ERR", Severity.ERROR),
+        McuPmicFlag(15, "ENDRV_ERR", Severity.ERROR),
+        McuPmicFlag(16, "DEVICE_STATE_ERR", Severity.ERROR),
+        McuPmicFlag(17, "VBATP_OV", Severity.ERROR),
+        McuPmicFlag(18, "VBATP_UV", Severity.ERROR),
+        McuPmicFlag(19, "VCP17_OV", Severity.ERROR),
+        McuPmicFlag(20, "VCP12_OV", Severity.ERROR),
+        McuPmicFlag(21, "VCP12_UV", Severity.ERROR),
+        McuPmicFlag(22, "VDD6_OV", Severity.ERROR),
+        McuPmicFlag(23, "VDD6_UV", Severity.ERROR),
+        McuPmicFlag(24, "VDD5_OV", Severity.ERROR),
+        McuPmicFlag(25, "VDD5_UV", Severity.ERROR),
+        McuPmicFlag(26, "VDD3_5_OV", Severity.ERROR),
+        McuPmicFlag(27, "VDD3_5_UV", Severity.ERROR),
+        McuPmicFlag(28, "WD_CFG_ERR", Severity.ERROR),
+        McuPmicFlag(29, "WD_RST_EN_ERR", Severity.ERROR),
+        McuPmicFlag(30, "WD_WIN1_CFG_ERR", Severity.ERROR),
+        McuPmicFlag(31, "WD_WIN2_CFG_ERR", Severity.ERROR),
+        McuPmicFlag(32, "WD_SYNC_ERR", Severity.ERROR),
 
-        /* -------- Error Bits (32–63) -------- */
+        /* -------- Error Bits (33–34) -------- */
 
-        McuPmicFlag(32, "DIAG_EXIT_ERR", Severity.ERROR),
-        McuPmicFlag(33, "TURN_ON_DIAG_STATE_ERR", Severity.ERROR)
+        McuPmicFlag(33, "DIAG_EXIT_ERR", Severity.ERROR),
+        McuPmicFlag(34, "TURN_ON_DIAG_STATE_ERR", Severity.ERROR),
+        McuPmicFlag(35, "UNUSED_35", Severity.ERROR),
+        McuPmicFlag(36, "UNUSED_36", Severity.ERROR),
+        McuPmicFlag(37, "UNUSED_37", Severity.ERROR),
+        McuPmicFlag(38, "UNUSED_38", Severity.ERROR),
+        McuPmicFlag(39, "UNUSED_39", Severity.ERROR),
+        McuPmicFlag(40, "UNUSED_40", Severity.ERROR),
+        McuPmicFlag(41, "UNUSED_41", Severity.ERROR),
+        McuPmicFlag(42, "UNUSED_42", Severity.ERROR),
+        McuPmicFlag(43, "UNUSED_43", Severity.ERROR),
+        McuPmicFlag(44, "UNUSED_44", Severity.ERROR),
+        McuPmicFlag(45, "UNUSED_45", Severity.ERROR),
+        McuPmicFlag(46, "UNUSED_46", Severity.ERROR),
+        McuPmicFlag(47, "UNUSED_47", Severity.ERROR),
+        McuPmicFlag(48, "UNUSED_48", Severity.ERROR),
+        McuPmicFlag(49, "UNUSED_49", Severity.ERROR),
+        McuPmicFlag(50, "UNUSED_50", Severity.ERROR),
+        McuPmicFlag(51, "UNUSED_51", Severity.ERROR),
+        McuPmicFlag(52, "UNUSED_52", Severity.ERROR),
+        McuPmicFlag(53, "UNUSED_53", Severity.ERROR),
+        McuPmicFlag(54, "UNUSED_54", Severity.ERROR),
+        McuPmicFlag(55, "UNUSED_55", Severity.ERROR),
+        McuPmicFlag(56, "UNUSED_56", Severity.ERROR),
+        McuPmicFlag(57, "UNUSED_57", Severity.ERROR),
+        McuPmicFlag(58, "UNUSED_58", Severity.ERROR),
+        McuPmicFlag(59, "UNUSED_59", Severity.ERROR),
+        McuPmicFlag(60, "UNUSED_60", Severity.ERROR),
+        McuPmicFlag(61, "UNUSED_61", Severity.ERROR),
+        McuPmicFlag(62, "UNUSED_62", Severity.ERROR),
+        McuPmicFlag(63, "UNUSED_63", Severity.ERROR)
+    )
+
+    private val vcuMiscFlags = listOf(
+
+        /* -------- Status Word Group 0 (0–31) -------- */
+
+        MiscFlag(0, "MTC_FCN_ACTIVE", Severity.INFO),
+        MiscFlag(1, "MTC_ERROR", Severity.INFO),
+        MiscFlag(2, "MTC_CTRL_REFUSED", Severity.INFO),
+        MiscFlag(3, "MTC_EN", Severity.INFO),
+        MiscFlag(4, "MTC_MODE_SPORT", Severity.INFO),
+        MiscFlag(5, "MTC_MODE_ROAD", Severity.INFO),
+        MiscFlag(6, "MTC_MODE_RAIN", Severity.INFO),
+        MiscFlag(7, "WOL_TIMEOUT", Severity.INFO),
+        MiscFlag(8, "SLEEP_MODE", Severity.INFO),
+        MiscFlag(9, "LAC_CHARGING", Severity.INFO),
+        MiscFlag(10, "IMU_FALL_DETECTED", Severity.INFO),
+        MiscFlag(11, "IMU_MOTION_DETECTED", Severity.INFO),
+        MiscFlag(12, "MTC_CRC_ERROR", Severity.INFO),
+        MiscFlag(13, "IMU_TOW_DETECTED", Severity.INFO),
+        MiscFlag(14, "IMU_CRASH_DETECTED", Severity.INFO),
+        MiscFlag(15, "LEFT_IND_ACTIVE", Severity.INFO),
+        MiscFlag(16, "RIGHT_IND_ACTIVE", Severity.INFO),
+        MiscFlag(17, "FORCE_RESET_EXEC", Severity.INFO),
+        MiscFlag(18, "ABS_COMM_TIMEOUT", Severity.INFO),
+        MiscFlag(19, "MC_MIL_ACTIVE", Severity.INFO),
+        MiscFlag(20, "CSEC_OP_TIMEOUT", Severity.INFO),
+        MiscFlag(21, "STN_CHG_TERM_EVENT", Severity.INFO),
+        MiscFlag(22, "ABS_PROG_ACTIVE", Severity.INFO),
+        MiscFlag(23, "FAST_CHARGER_CONNECTED", Severity.INFO),
+        MiscFlag(24, "HORN_PRESSED", Severity.INFO),
+        MiscFlag(25, "PRE_CRASH_TRIGGER", Severity.INFO),
+        MiscFlag(26, "CLU_RDY", Severity.INFO),
+        MiscFlag(27, "LAC_CHARGING_TIMEOUT", Severity.INFO),
+        MiscFlag(28, "SLEEP_MODE_L2", Severity.INFO),
+        MiscFlag(29, "LAC_DCDC_CHG_ERR", Severity.INFO),
+        MiscFlag(30, "MC_TMP_SNS_ERR", Severity.INFO),
+        MiscFlag(31, "VEH_IN_SVC_MODE", Severity.INFO),
+
+        /* -------- Status Word Group 1 (32–63) -------- */
+
+        MiscFlag(32, "LFX_SENTRY_AIRBUS_DISABLED", Severity.INFO),
+        MiscFlag(33, "LFX_SENTRY_ON_AIRBUS_OFF", Severity.INFO),
+        MiscFlag(34, "LFX_SENTRY_OFF_AIRBUS_ON", Severity.INFO),
+        MiscFlag(35, "LFX_SENTRY_ON_AIRBUS_ON", Severity.INFO),
+        MiscFlag(36, "IMU_FALL_DETECT_ON", Severity.INFO),
+        MiscFlag(37, "IMU_TOW_DETECT_ON", Severity.INFO),
+        MiscFlag(38, "IMU_SENTRY_MODE_ON", Severity.INFO),
+        MiscFlag(39, "CHG_ENDPOINT_LIMITED", Severity.INFO),
+        MiscFlag(40, "IMU_LOGGING_ENABLED", Severity.INFO),
+        MiscFlag(41, "MC_LCA_AVAILABLE", Severity.INFO),
+        MiscFlag(42, "MC_LCA_ENGAGED", Severity.INFO),
+        MiscFlag(43, "MC_LCA_ACTIVE", Severity.INFO),
+        MiscFlag(44, "MC_LCA_USR_EXIT", Severity.INFO),
+        MiscFlag(45, "LC_LCA_COND_EXIT", Severity.INFO),
+        MiscFlag(46, "LC_LCA_TIMEOUT", Severity.INFO),
+        MiscFlag(47, "MC_TPDO_TIMEOUT", Severity.INFO),
+        MiscFlag(48, "BL_PATCH_DONE", Severity.INFO),
+        MiscFlag(49, "RDR_BSM_RUNNING", Severity.INFO),
+        MiscFlag(50, "RDR_BSM_PAUSED", Severity.INFO),
+        MiscFlag(51, "RDR_BSM_ERROR", Severity.INFO),
+        MiscFlag(52, "RDR_BSM_DISABLED", Severity.INFO),
+        MiscFlag(53, "RDR_BSM_LHS_WARN", Severity.INFO),
+        MiscFlag(54, "RDR_BSM_LHS_ALRT", Severity.INFO),
+        MiscFlag(55, "RDR_BSM_RHS_WARN", Severity.INFO),
+        MiscFlag(56, "RDR_BSM_RHS_ALRT", Severity.INFO),
+        MiscFlag(57, "RDR_RCW_ALRT", Severity.INFO),
+        MiscFlag(58, "SWIF_SEM_WAIT", Severity.INFO),
+        MiscFlag(59, "RDR_SENSOR_BLOCKED", Severity.INFO),
+        MiscFlag(60, "RDR_SENSOR_DISABLED", Severity.INFO),
+        MiscFlag(61, "RDR_SENSOR_LIMITED", Severity.INFO),
+        MiscFlag(62, "RDR_SENSOR_ACTIVE", Severity.INFO),
+        MiscFlag(63, "RDR_SENSOR_INSPECTION", Severity.INFO),
+
+        /* -------- Status Word Group 2 (64–127) -------- */
+
+        MiscFlag(64, "RDR_REAR_CRC_ERR", Severity.INFO),
+        MiscFlag(65, "RDR_FRONT_CRC_ERR", Severity.INFO),
+        MiscFlag(66, "MC_SURGE_MODE", Severity.INFO),
+        MiscFlag(67, "MC_INVALID_ENCODER_OFFSET", Severity.INFO),
+        MiscFlag(68, "MC_SDO_UPDATE_FAIL", Severity.INFO),
+        MiscFlag(69, "RDR_BSM_TURNED_OFF", Severity.INFO),
+        MiscFlag(70, "RDR_RCW_TURNED_OFF", Severity.INFO),
+        MiscFlag(71, "INVALID_MC_FW", Severity.INFO),
+        MiscFlag(72, "INVALID_MC_PROD_CODE", Severity.INFO),
+        MiscFlag(73, "MC_DETAILS_NA", Severity.INFO),
+        MiscFlag(74, "MC_SPEED_LIMIT_SET", Severity.INFO),
+        MiscFlag(75, "MC_ENCODER_OFFSET_UPDATED", Severity.INFO),
+        MiscFlag(76, "MC_IN_LOCKDOWN", Severity.INFO),
+        MiscFlag(77, "CHG_INCOMPATIBLE", Severity.INFO),
+        MiscFlag(78, "RE_LOAD_FAILED", Severity.INFO),
+        MiscFlag(79, "CCG_INIT_FAIL", Severity.INFO),
+        MiscFlag(80, "CCG_MCP_RX_ERROR", Severity.INFO),
+        MiscFlag(81, "VNIC_RNDIS_CONNECTED", Severity.INFO),
+        MiscFlag(82, "CCG_RX_ERR", Severity.INFO),
+        MiscFlag(83, "CHARGER_FLAP_OPENED", Severity.INFO),
+        MiscFlag(84, "MC_TMAP_FACT_RESET_AT_BOOT", Severity.INFO),
+        MiscFlag(85, "CD_DETECTED", Severity.INFO),
+        MiscFlag(86, "SHMEM_OOM", Severity.INFO),
+        MiscFlag(87, "CPU_CORE_OVERTEMP_ALERT", Severity.INFO),
+        MiscFlag(88, "MC_CC_OFF", Severity.INFO),
+        MiscFlag(89, "MC_CC_STBY", Severity.INFO),
+        MiscFlag(90, "MC_CC_ACTIVE", Severity.INFO),
+        MiscFlag(91, "MC_CC_ERROR", Severity.INFO),
+        MiscFlag(92, "IMU_WORLD_CAL_MISSING", Severity.INFO),
+        MiscFlag(93, "IMU_FRAME_CAL_MISSING", Severity.INFO),
+        MiscFlag(94, "MC_CC_FEAT_EN", Severity.INFO),
+        MiscFlag(95, "ABS_WARNING_LAMP_ON", Severity.INFO),
+
+        /* -------- Unused (96–127) -------- */
+
+        MiscFlag(96, "UNUSED_96", Severity.INFO),
+        MiscFlag(97, "UNUSED_97", Severity.INFO),
+        MiscFlag(98, "UNUSED_98", Severity.INFO),
+        MiscFlag(99, "UNUSED_99", Severity.INFO),
+        MiscFlag(100, "UNUSED_100", Severity.INFO),
+        MiscFlag(101, "UNUSED_101", Severity.INFO),
+        MiscFlag(102, "UNUSED_102", Severity.INFO),
+        MiscFlag(103, "UNUSED_103", Severity.INFO),
+        MiscFlag(104, "UNUSED_104", Severity.INFO),
+        MiscFlag(105, "UNUSED_105", Severity.INFO),
+        MiscFlag(106, "UNUSED_106", Severity.INFO),
+        MiscFlag(107, "UNUSED_107", Severity.INFO),
+        MiscFlag(108, "UNUSED_108", Severity.INFO),
+        MiscFlag(109, "UNUSED_109", Severity.INFO),
+        MiscFlag(110, "UNUSED_110", Severity.INFO),
+        MiscFlag(111, "UNUSED_111", Severity.INFO),
+        MiscFlag(112, "UNUSED_112", Severity.INFO),
+        MiscFlag(113, "UNUSED_113", Severity.INFO),
+        MiscFlag(114, "UNUSED_114", Severity.INFO),
+        MiscFlag(115, "UNUSED_115", Severity.INFO),
+        MiscFlag(116, "UNUSED_116", Severity.INFO),
+        MiscFlag(117, "UNUSED_117", Severity.INFO),
+        MiscFlag(118, "UNUSED_118", Severity.INFO),
+        MiscFlag(119, "UNUSED_119", Severity.INFO),
+        MiscFlag(120, "UNUSED_120", Severity.INFO),
+        MiscFlag(121, "UNUSED_121", Severity.INFO),
+        MiscFlag(122, "UNUSED_122", Severity.INFO),
+        MiscFlag(123, "UNUSED_123", Severity.INFO),
+        MiscFlag(124, "UNUSED_124", Severity.INFO),
+        MiscFlag(125, "UNUSED_125", Severity.INFO),
+        MiscFlag(126, "UNUSED_126", Severity.INFO),
+        MiscFlag(127, "UNUSED_127", Severity.INFO),
+        MiscFlag(128, "MAX_MISC_STATUS_FLAGS", Severity.INFO)
     )
 
     override fun onCreateView(
@@ -456,7 +649,9 @@ class DebugFragment : Fragment() {
             val categoryFaults = mutableMapOf<String, List<FaultItem>>(
                 "VCU" to emptyList(),
                 "BMS" to emptyList(),
-                "MCU" to emptyList()
+                "MCU" to emptyList(),
+                "MCU_PMIC" to emptyList(),
+                "MISC" to emptyList()
             )
             fun refreshFaultUI() {
                 // "First comes show first" defined by the order of addition here:
@@ -464,6 +659,8 @@ class DebugFragment : Fragment() {
                 allFaults.addAll(categoryFaults["VCU"] ?: emptyList())
                 allFaults.addAll(categoryFaults["BMS"] ?: emptyList())
                 allFaults.addAll(categoryFaults["MCU"] ?: emptyList())
+                allFaults.addAll(categoryFaults["MCU_PMIC"] ?: emptyList())
+                allFaults.addAll(categoryFaults["MISC"] ?: emptyList())
 
                 updateFaultColumns(allFaults)
             }
@@ -543,7 +740,7 @@ class DebugFragment : Fragment() {
                             .filter { isBitSet(bmsStatus, it.bit) }
                             .map { FaultItem(it.label, it.severity) }
 
-                        // Update UI immediately
+                        // UpdatMe UI immediately
                         refreshFaultUI()
 
                         // Update other non-fault UI elements
@@ -646,6 +843,16 @@ class DebugFragment : Fragment() {
                     }
                 }
 
+                launch {
+                    carViewModel.vcuMiscInfo.collect { miscInfo ->
+                        categoryFaults["MISC"] = vcuMiscFlags
+                            .filter { miscInfo.hasFlag(it.bit) }
+                            .map { FaultItem(it.label, it.severity) }
+
+                        refreshFaultUI()
+
+                    }
+                }
                 launch {
                     carViewModel.mcuFaultData.collect { mcuFaultData ->
                         categoryFaults["MCU"] = mcuFlags

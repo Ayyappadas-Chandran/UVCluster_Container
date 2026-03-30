@@ -87,7 +87,7 @@ class CarServiceWrapper(private val context: Context) {
                 registerProperId(PROP_ID_MTC_MODE)
                 registerProperId(PROP_ID_MC_THERMAL)
                 registerProperId(PROP_ID_MC_NO_ARM)
-		registerProperId(PROP_ID_CHARGER_EVT)
+                registerProperId(PROP_ID_CHARGER_EVT)
                 d("VHALData", "All properties registered safely")
             } catch (ex: Exception) {
                 e("VHALData", "Exception registering props: ${ex.message}")

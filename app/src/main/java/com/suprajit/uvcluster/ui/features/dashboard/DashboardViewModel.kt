@@ -60,10 +60,9 @@ class DashboardViewModel(private val preferenceManager: PreferenceManager) : Vie
         get() = preferenceManager.isBallisticPlus
 
     fun ballisticPlus(isBallisticPlus: Boolean) {
-      //  preferenceManager.saveBallisticPlus(isBallisticPlus)
+        preferenceManager.saveBallisticPlus(isBallisticPlus)
         _uiState.update { it.copy(isBallisticPlus = isBallisticPlus) }
     }
-    var isBallisticPlus = false
     fun setPowerValue(power: Float) {
         _uiState.update { it.copy(power = power) }
     }

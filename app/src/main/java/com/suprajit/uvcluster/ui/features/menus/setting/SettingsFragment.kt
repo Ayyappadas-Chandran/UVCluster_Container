@@ -84,7 +84,8 @@ class SettingsFragment : Fragment() {
             initRecyclerView(0)
         } else {
             d("Faizulla", "theme changed")
-            sharedViewModel.hasThemeConfigChanged = false
+            //sharedViewModel.hasThemeConfigChanged = false
+            sharedViewModel.resetThemeChangeFlag()
             initRecyclerView(4)
         }
         val animationSlideUp =

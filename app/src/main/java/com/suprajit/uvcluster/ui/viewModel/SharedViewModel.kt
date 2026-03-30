@@ -1,14 +1,18 @@
 package com.suprajit.uvcluster.ui.viewModel
 
 import android.os.Build
+import android.util.Log.d
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.suprajit.uvcluster.domain.dataModel.ChildItem
 import com.suprajit.uvcluster.domain.dataModel.RangeLimit
 import com.suprajit.uvcluster.domain.manager.PreferenceManager
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 
 /**
  * ViewModel to manage and expose child item click events in the Settings menu.
@@ -127,6 +131,14 @@ class SharedViewModel(private val preferenceManager: PreferenceManager) : ViewMo
     }
     fun saveBallisticPlus(isBallisticPlus: Boolean) {
         preferenceManager.saveBallisticPlus(isBallisticPlus)
+    }
+    fun resetThemeChangeFlag() {
+        viewModelScope.launch {
+            // Give VHAL 1 second to finish re-sending old cached data
+            delay(5000)
+            hasThemeConfigChanged = false
+            d("ThemeChange", "Flag reset to false. Alerts are now active.")
+        }
     }
 }
 

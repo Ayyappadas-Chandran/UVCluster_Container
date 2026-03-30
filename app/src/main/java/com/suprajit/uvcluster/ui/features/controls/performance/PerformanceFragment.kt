@@ -126,7 +126,7 @@ class PerformanceFragment : Fragment() {
                 launch {
                     carViewModel.ballisticPlus.collect { state ->
                         val isStateOn = state
-                        // viewModel.saveBallisticPlus(isStateOn)
+                        viewModel.saveBallisticPlus(isStateOn)
                         d("SURGE_MODE_FROM_VCU", "state:$state")
                     }
                 }

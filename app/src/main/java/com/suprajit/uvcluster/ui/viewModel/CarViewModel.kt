@@ -124,8 +124,13 @@ class CarViewModel(private val carRepository: CarRepository?) : ViewModel() {
     private val _mcThermal = MutableStateFlow(floatArrayOf())
     val mcThermal: StateFlow<FloatArray> = _mcThermal.asStateFlow()
 
-    private val _mcNoArm = MutableStateFlow(intArrayOf())
-    val mcNoArm: StateFlow<IntArray> = _mcNoArm.asStateFlow()
+    private val _chargeEvt = MutableStateFlow(0)
+    val chargeEvt: StateFlow<Int> = _chargeEvt.asStateFlow()
+
+    /*private val _mcNoArm = MutableStateFlow(intArrayOf())
+    val mcNoArm: StateFlow<IntArray> = _mcNoArm.asStateFlow()*/
+    private val _mcNoArm = MutableSharedFlow<IntArray>(replay = 0, extraBufferCapacity = 8)
+    val mcNoArm: SharedFlow<IntArray> = _mcNoArm.asSharedFlow()
 
     private val _fotaUpdate = MutableStateFlow(intArrayOf())
     val fotaUpdate: StateFlow<IntArray> = _fotaUpdate.asStateFlow()
@@ -208,6 +213,7 @@ class CarViewModel(private val carRepository: CarRepository?) : ViewModel() {
 
 
     fun connect() {
+        d("CarViewModel", "Connection")
         carRepository?.connect()
         carRepository?.observeProperties { propertyValue ->
             when (propertyValue.propertyId) {
@@ -301,8 +307,9 @@ class CarViewModel(private val carRepository: CarRepository?) : ViewModel() {
 
                 PROP_ID_MC_NO_ARM -> {
                     val mcNoArm = toIntArray(propertyValue.value)
-                    d("VHALData", "mcNoArm : ${mcNoArm.joinToString()}")
-                    _mcNoArm.value = mcNoArm
+                    d("VCU_ALERT_SYSTEM", "[VHAL] Event Received: mcNoArm -> ${mcNoArm.joinToString()}")
+                    // Use tryEmit for SharedFlow
+                    _mcNoArm.tryEmit(mcNoArm)
                 }
 
                 PROP_ID_MC_THERMAL -> {
@@ -314,6 +321,7 @@ class CarViewModel(private val carRepository: CarRepository?) : ViewModel() {
                 PROP_ID_CHARGER_EVT -> {
                     val chargerEvt = toInt(propertyValue.value)
                     d("VHALData", "chargerEvt: $chargerEvt")
+                    _chargeEvt.value = chargerEvt
                 }
             }
         }

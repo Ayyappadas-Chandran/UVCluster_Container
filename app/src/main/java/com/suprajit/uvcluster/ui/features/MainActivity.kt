@@ -50,6 +50,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.NavController
 import androidx.navigation.fragment.NavHostFragment
+import com.suprajit.uvcluster.ClusterNotification
 import com.suprajit.uvcluster.FotaReceiver
 import com.suprajit.uvcluster.NotificationManager
 import com.suprajit.uvcluster.R
@@ -313,6 +314,7 @@ class MainActivity : AppCompatActivity() {
 
         val imei = getSystemProperty("persist.sys.bike.imei", "000000000000000")
         d("IMEI", imei)
+//        ClusterNotification.reset()
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         initViews()
         requestPermission()
@@ -328,11 +330,12 @@ class MainActivity : AppCompatActivity() {
         d("ScreenInfo", "Resolution: ${width}x${height}")
         //showTellTales()
         initObserver()
-        NotificationManager.init(this, lifecycleOwner = this, carViewModel, viewModel)
+        NotificationManager.init(applicationContext, carViewModel, viewModel)
     }
 
     override fun onStart() {
         super.onStart()
+        d("MainActivityLifeCycle", "onStart is called")
         bluetoothViewModel.registerBluetoothActionReceiver()
         wifiViewModel.registerWifiStateChangeReceiver()
         dataViewModel.registerReceiver()
@@ -1039,6 +1042,7 @@ class MainActivity : AppCompatActivity() {
         wifiViewModel.startScan()
         wifiViewModel.scanResult()
         wifiViewModel.startSignalMonitoring()
+        //navHostFragment?.navController?.navigate(R.id.versionsFragment)
         d("MainActivityLifeCycle", "onResume is called")
         sendClusterReady()
         // updateCurrentStates(this)
@@ -1702,9 +1706,9 @@ class MainActivity : AppCompatActivity() {
     fun blinkImage(imageView: ImageView): Job {
         return this.lifecycleScope.launch {
             while (isActive) {
-                imageView.alpha = 0f
-                delay(400)
                 imageView.alpha = 1f
+                delay(400)
+                imageView.alpha = 0f
                 delay(400)
             }
             imageView.alpha = 1f
