@@ -1,3 +1,4 @@
+
 package com.suprajit.uvcluster
 
 interface DataRepository {
@@ -8,4 +9,6 @@ interface DataRepository {
     fun setDataState(isEnabled: Boolean)
 
     fun isDataEnable():Boolean
+    fun startListening(onSignalChanged: (Int) -> Unit)
+    fun stopListening()
 }

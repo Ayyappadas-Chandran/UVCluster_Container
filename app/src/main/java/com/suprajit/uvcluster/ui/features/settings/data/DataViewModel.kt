@@ -17,7 +17,8 @@ class DataViewModel(private val dataRepository: DataRepository) : ViewModel() {
         )
     )
     val onDataStateChange: StateFlow<UiState> = _dataStateChange.asStateFlow()
-
+    private val _currentSNetworkSignalLevel = MutableStateFlow(0)
+    val currentNetworkSignalLevel: StateFlow<Int> = _currentSNetworkSignalLevel.asStateFlow()
     fun registerReceiver() {
         dataRepository.registerReceiver()
     }
@@ -34,5 +35,16 @@ class DataViewModel(private val dataRepository: DataRepository) : ViewModel() {
 
     fun setDataState(isEnabled: Boolean) {
         dataRepository.setDataState(isEnabled)
+    }
+
+    fun getNetworkSignalLevel(){
+	d("LTESignal","getNetworkSignalLevel_VM")
+        dataRepository.startListening { level ->
+            _currentSNetworkSignalLevel.value = level
+        }
+    }
+    fun stopSignalUpdates() {
+        d("LTESignal","stopSignalUpdates_VM")
+        dataRepository.stopListening()
     }
 }

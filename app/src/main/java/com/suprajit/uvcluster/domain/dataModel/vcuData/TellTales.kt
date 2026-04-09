@@ -25,5 +25,9 @@ data class TellTales(
     val hazardLamps: Int = 0,
     val regenLevel: Int = 0,
     val criticalMalfunction :Int = 0,
+    val radarIndicator : Int=0,
+    val motorNoArmCause : Int=0,
+    val availableRideModes : Int=0,
+    val thermalRunway : Int=0,
     val reserved: Int = 0
 )

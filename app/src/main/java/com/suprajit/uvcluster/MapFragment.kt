@@ -58,6 +58,7 @@ class MapFragment : Fragment() {
     private lateinit var tvSpeedBallisticUnit: TextView
     private lateinit var tvRangeBallisticUnit: TextView
     private lateinit var tvDistanceBallistic: TextView
+    private lateinit var ivBack: ImageView
     private val carViewModel: CarViewModel by activityViewModels { ViewModelFactory(requireContext()) }
     private val sharedViewModel: SharedViewModel by activityViewModels {
         ViewModelFactory(
@@ -86,13 +87,16 @@ class MapFragment : Fragment() {
     }
 
     fun initClickListener() {
-        ivManeuver.setOnSoundClickListener(requireContext()) {
-            d("Tag", "Back")
-            findNavController().navigate(R.id.menuFragment)
-        }
-        ivManeuverBallistic.setOnSoundClickListener(requireContext()) {
+//        ivManeuver.setOnSoundClickListener(requireContext()) {
+//            d("Tag", "Back")
+//            findNavController().navigate(R.id.menuFragment)
+//        }
+//        ivManeuverBallistic.setOnSoundClickListener(requireContext()) {
+//            findNavController().navigateUp()
+//        }
+        ivBack.setOnSoundClickListener(requireContext()) {
             findNavController().navigateUp()
-        }
+       }
     }
 
     private fun initView(view: View) {
@@ -125,6 +129,7 @@ class MapFragment : Fragment() {
         tvWhKmLabel = view.findViewById(R.id.tvWhKmLabel)
         tvDistance = view.findViewById(R.id.tvDistance)
         tvDistanceBallistic = view.findViewById(R.id.tvDistanceBallistic)
+        ivBack=view.findViewById(R.id.ivBack)
     }
 
     private fun initObserver() {
@@ -241,6 +246,7 @@ class MapFragment : Fragment() {
         }
     }
 }
+
 
 
 

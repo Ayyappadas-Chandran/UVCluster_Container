@@ -191,7 +191,20 @@
         <action
             android:id="@+id/action_debugFragment_to_dashBoardFragment"
             app:destination="@id/dashboardFragment" />
+	<action
+            android:id="@+id/action_debugFragment_to_checkSpeedFragment"
+            app:destination="@id/checkSpeedFragment" />
     </fragment>
+	<fragment
+        android:id="@+id/checkSpeedFragment"
+        android:name="com.suprajit.uvcluster.ui.features.settings.debug.CheckSpeedFragment"
+        android:label="fragment_check_speed"
+        tools:layout="@layout/fragment_check_speed" >
+        <action
+            android:id="@+id/action_checkSpeedFragment_to_debugFragment"
+            app:destination="@id/debugFragment" />
+    </fragment>
+
     <fragment
         android:id="@+id/versionsFragment"
         android:name="com.suprajit.uvcluster.ui.features.settings.versions.fragment_versions"

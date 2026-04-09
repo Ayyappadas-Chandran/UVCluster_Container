@@ -24,6 +24,8 @@ import com.suprajit.uvcluster.ui.viewModel.CarViewModel
 import com.suprajit.uvcluster.ui.viewModel.SharedViewModel
 import com.suprajit.uvcluster.utils.Utilities.setOnSoundClickListener
 import com.suprajit.uvcluster.utils.ViewModelFactory
+import java.time.LocalTime
+import java.time.ZoneId
 
 class DisplayFragment : Fragment() {
     private lateinit var tvBrightnessLevel: TextView
@@ -394,9 +396,25 @@ class DisplayFragment : Fragment() {
             }
 
             getString(R.string.auto) -> {
-                if (AppCompatDelegate.getDefaultNightMode() != AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM) {
+             /*   if (AppCompatDelegate.getDefaultNightMode() != AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM) {
                     sharedViewModel.hasThemeConfigChanged = true
                     AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
+                }*/
+                if (
+                    LocalTime.now(ZoneId.of("Asia/Kolkata")).let {
+                        it.isAfter(LocalTime.of(6, 0)) && it.isBefore(LocalTime.of(18, 0))
+                    }
+                ) {
+                    if (AppCompatDelegate.getDefaultNightMode() != AppCompatDelegate.MODE_NIGHT_NO) {
+                        sharedViewModel.hasThemeConfigChanged = true
+                        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
+                    }
+
+                }else {
+                    if (AppCompatDelegate.getDefaultNightMode() != AppCompatDelegate.MODE_NIGHT_YES) {
+                        sharedViewModel.hasThemeConfigChanged = true
+                        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
+                    }
                 }
             }
         }

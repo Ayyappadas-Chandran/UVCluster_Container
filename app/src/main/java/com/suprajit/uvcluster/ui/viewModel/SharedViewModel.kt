@@ -41,6 +41,22 @@ class SharedViewModel(private val preferenceManager: PreferenceManager) : ViewMo
 
     val isRadarOn: Boolean
         get() = preferenceManager.isRadarOn
+    val isConsoleAlertsOn: Boolean
+        get() = preferenceManager.isConsoleAlertsOn
+    private val _isHillHold = MutableStateFlow(preferenceManager.isHillHold)
+    val isHillHold: StateFlow<Boolean> = _isHillHold
+
+    init {
+        _isHillHold.value = preferenceManager.isHillHold
+    }
+
+    fun setHillHold(value: Boolean) {
+        _isHillHold.value = value
+
+    }
+
+
+
     private var _afChildClick: MutableLiveData<Boolean> = MutableLiveData()
     val afChildClick: LiveData<Boolean>
         get() = _afChildClick
@@ -132,6 +148,7 @@ class SharedViewModel(private val preferenceManager: PreferenceManager) : ViewMo
     fun saveBallisticPlus(isBallisticPlus: Boolean) {
         preferenceManager.saveBallisticPlus(isBallisticPlus)
     }
+
     fun resetThemeChangeFlag() {
         viewModelScope.launch {
             // Give VHAL 1 second to finish re-sending old cached data
@@ -141,5 +158,6 @@ class SharedViewModel(private val preferenceManager: PreferenceManager) : ViewMo
         }
     }
 }
+
 
 

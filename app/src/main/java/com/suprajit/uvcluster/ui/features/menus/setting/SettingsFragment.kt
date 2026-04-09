@@ -85,7 +85,7 @@ class SettingsFragment : Fragment() {
         } else {
             d("Faizulla", "theme changed")
             //sharedViewModel.hasThemeConfigChanged = false
-            sharedViewModel.resetThemeChangeFlag()
+	    sharedViewModel.resetThemeChangeFlag()
             initRecyclerView(4)
         }
         val animationSlideUp =
@@ -355,7 +355,8 @@ class SettingsFragment : Fragment() {
             SettingMenuItem(getString(R.string.factory_reset), R.id.factoryResetFragment),
             SettingMenuItem("Debug Screen", R.id.debugFragment),
             SettingMenuItem("Versions", R.id.versionsFragment),
-            SettingMenuItem("LOCATION", R.id.locationFragment)
+            SettingMenuItem("LOCATION", R.id.locationFragment),
+	    SettingMenuItem("Filemanager", R.id.filemanagerFragment)
         )
 
         verticalMenuAdapter = VerticalMenuAdapter(position, { destinationId, adapterPosition ->

@@ -17,6 +17,10 @@ import com.suprajit.uvcluster.utils.Utilities.PROP_ID_FOTA_UPDATE
 import com.suprajit.uvcluster.utils.Utilities.PROP_ID_HILL_HOLD_ICON
 import com.suprajit.uvcluster.utils.Utilities.PROP_ID_HILL_HOLD_STATE
 import com.suprajit.uvcluster.utils.Utilities.PROP_ID_INDICATOR
+import com.suprajit.uvcluster.utils.Utilities.PROP_ID_HIGH_BEAM_TELLTALE
+import com.suprajit.uvcluster.utils.Utilities.PROP_ID_HAZARD_LIGHT_TELLTALE
+import com.suprajit.uvcluster.utils.Utilities.PROP_ID_MOTOR_ARM_DISARM_TELLTALE
+import com.suprajit.uvcluster.utils.Utilities.PROP_ID_HEARTBEAT_ENABLE_DISABLE
 import com.suprajit.uvcluster.utils.Utilities.PROP_ID_CUSTOM
 import com.suprajit.uvcluster.utils.Utilities.PROP_ID_LOCKDOWN
 import com.suprajit.uvcluster.utils.Utilities.PROP_ID_MC_NO_ARM
@@ -78,6 +82,10 @@ class CarServiceWrapper(private val context: Context) {
                 registerProperId(PROP_ID_RIDE_MODES)
                 registerProperId(PROP_ID_SCREEN_MODES)
                 registerProperId(PROP_ID_INDICATOR)
+		registerProperId(PROP_ID_HIGH_BEAM_TELLTALE)
+		registerProperId(PROP_ID_HAZARD_LIGHT_TELLTALE)
+                registerProperId(PROP_ID_MOTOR_ARM_DISARM_TELLTALE)
+		registerProperId(PROP_ID_HEARTBEAT_ENABLE_DISABLE)
                 registerProperId(PROP_ID_LOCKDOWN)
                 registerProperId(PROP_ID_CUSTOM)
                 registerProperId(PROP_ID_FOTA_UPDATE)
@@ -87,7 +95,7 @@ class CarServiceWrapper(private val context: Context) {
                 registerProperId(PROP_ID_MTC_MODE)
                 registerProperId(PROP_ID_MC_THERMAL)
                 registerProperId(PROP_ID_MC_NO_ARM)
-                registerProperId(PROP_ID_CHARGER_EVT)
+		registerProperId(PROP_ID_CHARGER_EVT)
                 d("VHALData", "All properties registered safely")
             } catch (ex: Exception) {
                 e("VHALData", "Exception registering props: ${ex.message}")

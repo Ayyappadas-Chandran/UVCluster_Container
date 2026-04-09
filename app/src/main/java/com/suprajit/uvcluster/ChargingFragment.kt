@@ -17,9 +17,11 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
+import com.suprajit.uvcluster.domain.ennumerate.ButtonNavigation
 import com.suprajit.uvcluster.ui.features.MainActivity
 import com.suprajit.uvcluster.ui.viewModel.CarViewModel
 import com.suprajit.uvcluster.ui.viewModel.SharedViewModel
+import com.suprajit.uvcluster.utils.Utilities
 import com.suprajit.uvcluster.utils.Utilities.ARG_CHARGING_STATUS
 import com.suprajit.uvcluster.utils.Utilities.applyMinMax
 import com.suprajit.uvcluster.utils.ViewModelFactory
@@ -40,6 +42,17 @@ class ChargingFragment : Fragment() {
     private lateinit var pbBattery: CircularGradientProgress
     private lateinit var ivRideModes: ImageView
 
+    private val debugSequence = listOf(
+        ButtonNavigation.Back.ordinal,
+        ButtonNavigation.Right.ordinal,
+        ButtonNavigation.Left.ordinal,
+        ButtonNavigation.Bottom.ordinal,
+        ButtonNavigation.Left.ordinal
+    )
+    private var sequenceStep = 0
+    private var lastClickTime = 0L
+    private val SEQUENCE_TIMEOUT = 2000L
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -48,6 +61,7 @@ class ChargingFragment : Fragment() {
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+	d("CharingScreen","onViewCreated")
         super.onViewCreated(view, savedInstanceState)
         initView(view)
         initObserver()
@@ -102,7 +116,13 @@ class ChargingFragment : Fragment() {
                         d("CharingScreen","RideMode: $rideModes")
                         handleRideMode(rideModes)
                         val chargingStatus = tellTales.charger
-                        if (chargingStatus==0)findNavController().navigate(R.id.dashboardFragment)
+                        if (chargingStatus==0)
+                        {
+                            if(tellTales.modeHover==1)
+                            findNavController().navigate(R.id.hoverModeFragment)
+                            else
+                                findNavController().navigate(R.id.dashboardFragment)
+                        }
                     }
                 }
                 launch {
@@ -149,6 +169,15 @@ class ChargingFragment : Fragment() {
 
                     }
                 }
+
+		launch {
+                    carViewModel.swiftButton.collect { swiftButton ->
+                        d("CharingScreen","ButtonEvent came")
+			val button = Utilities.getButtonState(swiftButton)
+                        if (button == ButtonNavigation.None) return@collect
+                        handleButtonNavigation(button.ordinal)
+                    }
+                }
             }
         }
     }
@@ -175,6 +204,47 @@ class ChargingFragment : Fragment() {
         }
     }
 
+    private fun handleButtonNavigation(button: Int) {
+        val currentTime = System.currentTimeMillis()
+
+        // 1. Check for Timeout: If too much time passed, reset the sequence progress
+        if (currentTime - lastClickTime > SEQUENCE_TIMEOUT) {
+            sequenceStep = 0
+        }
+
+        // 2. Sequence Logic
+        if (button == debugSequence[sequenceStep]) {
+            lastClickTime = currentTime
+            sequenceStep++
+
+            if (sequenceStep == debugSequence.size) {
+                sequenceStep = 0
+                findNavController().navigate(R.id.debugFragment)
+                return
+            }
+
+            // While correctly entering the sequence, we block normal button behavior
+            return
+        } else {
+            // Button didn't match the sequence: Reset sequence and continue to normal behavior
+            // Check if this "wrong" button is actually the start of a new sequence attempt
+            sequenceStep = if (button == debugSequence[0]) {
+                lastClickTime = currentTime
+                1
+            } else {
+                0
+            }
+
+            // If we reset to 0, we do NOT return, so the 'when' block below executes
+            if (sequenceStep == 0) {
+                // Fall through to normal behavior
+            } else {
+                // It was the start of a new sequence, block normal behavior
+                return
+            }
+        }
+    }
+
     private fun handleChargingStatus(status: Int) {
         when (status) {
             0x00 -> findNavController().navigateUp()
@@ -193,6 +263,8 @@ class ChargingFragment : Fragment() {
         }
     }
 }
+
+
 
 
 

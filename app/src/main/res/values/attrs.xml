@@ -21,6 +21,8 @@
     <attr name="toolbarCenter" format="reference" />
     <attr name="levelColor" format="color" />
     <attr name="pbBgColor" format="color"/>
+    <attr name="bdpowerbar" format="color"/>
+    <attr name="regen4level" format="color"/>
 
     <declare-styleable name="SpeedTextView">
         <attr name="text" format="string" />
@@ -34,4 +36,5 @@
         <attr name="particleMaxSize" format="float" />
     </declare-styleable>
 </resources>
+
 

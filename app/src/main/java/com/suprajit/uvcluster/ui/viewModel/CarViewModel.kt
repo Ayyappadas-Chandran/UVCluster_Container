@@ -25,6 +25,10 @@ import com.suprajit.uvcluster.utils.Utilities.PROP_ID_FOTA_UPDATE
 import com.suprajit.uvcluster.utils.Utilities.PROP_ID_HILL_HOLD_ICON
 import com.suprajit.uvcluster.utils.Utilities.PROP_ID_HILL_HOLD_STATE
 import com.suprajit.uvcluster.utils.Utilities.PROP_ID_INDICATOR
+import com.suprajit.uvcluster.utils.Utilities.PROP_ID_HIGH_BEAM_TELLTALE
+import com.suprajit.uvcluster.utils.Utilities.PROP_ID_HAZARD_LIGHT_TELLTALE
+import com.suprajit.uvcluster.utils.Utilities.PROP_ID_MOTOR_ARM_DISARM_TELLTALE
+import com.suprajit.uvcluster.utils.Utilities.PROP_ID_HEARTBEAT_ENABLE_DISABLE
 import com.suprajit.uvcluster.utils.Utilities.PROP_ID_CUSTOM
 import com.suprajit.uvcluster.utils.Utilities.PROP_ID_LOCKDOWN
 import com.suprajit.uvcluster.utils.Utilities.PROP_ID_MC_NO_ARM
@@ -54,6 +58,13 @@ import com.suprajit.uvcluster.domain.dataModel.vcuData.hasBmsFlag
 import com.suprajit.uvcluster.domain.dataModel.vcuData.hasFlag
 import com.suprajit.uvcluster.domain.ennumerate.McuFaultFlag
 import com.suprajit.uvcluster.domain.ennumerate.McuPmicFaultFlag
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.NonCancellable.isActive
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.launch
+
 
 enum class RadarState {
     Off,
@@ -97,11 +108,27 @@ class CarViewModel(private val carRepository: CarRepository?) : ViewModel() {
     private val _rideModes = MutableStateFlow(0)
     val rideModes: StateFlow<Int> = _rideModes.asStateFlow()
 
+    private val _chargerEvt = MutableStateFlow(0)
+    val chargerEvt: StateFlow<Int> = _chargerEvt.asStateFlow()
+
+
     private val _screenModes = MutableStateFlow(0)
     val screenModes: StateFlow<Int> = _screenModes.asStateFlow()
 
     private val _indicator = MutableStateFlow(0)
     val indicator: StateFlow<Int> = _indicator.asStateFlow()
+
+    private val _highBeamTellTale = MutableStateFlow(0)
+    val highBeamTellTale: StateFlow<Int> = _highBeamTellTale.asStateFlow()
+
+   private val _heartBeatstatus = MutableStateFlow(0)
+    val heartBeatstatus: StateFlow<Int> = _heartBeatstatus.asStateFlow()
+
+    private val _hazardLightTellTale = MutableStateFlow(0)
+    val hazardLightTellTale: StateFlow<Int> = _hazardLightTellTale.asStateFlow()
+
+    private val _motorArmDisarmTellTale = MutableStateFlow(0)
+    val motorArmDisarmTellTale: StateFlow<Int> = _motorArmDisarmTellTale.asStateFlow()
 
     private val _lockdown = MutableStateFlow(0)
     val lockdown: StateFlow<Int> = _lockdown.asStateFlow()
@@ -124,11 +151,6 @@ class CarViewModel(private val carRepository: CarRepository?) : ViewModel() {
     private val _mcThermal = MutableStateFlow(floatArrayOf())
     val mcThermal: StateFlow<FloatArray> = _mcThermal.asStateFlow()
 
-    private val _chargeEvt = MutableStateFlow(0)
-    val chargeEvt: StateFlow<Int> = _chargeEvt.asStateFlow()
-
-    /*private val _mcNoArm = MutableStateFlow(intArrayOf())
-    val mcNoArm: StateFlow<IntArray> = _mcNoArm.asStateFlow()*/
     private val _mcNoArm = MutableSharedFlow<IntArray>(replay = 0, extraBufferCapacity = 8)
     val mcNoArm: SharedFlow<IntArray> = _mcNoArm.asSharedFlow()
 
@@ -179,6 +201,9 @@ class CarViewModel(private val carRepository: CarRepository?) : ViewModel() {
 
     private val _rightRadarState = MutableStateFlow(RadarState.Off)
     val rightRadarState: StateFlow<RadarState> = _rightRadarState.asStateFlow()
+    
+    private val _rcwRadarState = MutableStateFlow(false)
+    val rcwRadarState=_rcwRadarState.asStateFlow()
 
     private val _radarTelltaleState = MutableStateFlow(RadarTelltaleState.Off)
     val radarTellTaleState: StateFlow<RadarTelltaleState> = _radarTelltaleState.asStateFlow()
@@ -210,10 +235,16 @@ class CarViewModel(private val carRepository: CarRepository?) : ViewModel() {
     private val _keyOff= MutableStateFlow(false)
     val keyOff = _keyOff.asStateFlow()
 
+    private var heartbeatJob: Job? = null
+    private var heartbeatCounter = 0L
+    private var isHeartbeatEnabled = true
+
+    private val MSG_ID_USB_HEARTBEAT_IMX_S32 = 0x2170030F
+
+
 
 
     fun connect() {
-        d("CarViewModel", "Connection")
         carRepository?.connect()
         carRepository?.observeProperties { propertyValue ->
             when (propertyValue.propertyId) {
@@ -272,6 +303,26 @@ class CarViewModel(private val carRepository: CarRepository?) : ViewModel() {
                     _indicator.value = indicator
                 }
 
+		PROP_ID_HIGH_BEAM_TELLTALE -> {
+                    val highBeamTellTale = toInt(propertyValue.value)
+                    _highBeamTellTale.value = highBeamTellTale
+                }
+
+		PROP_ID_HEARTBEAT_ENABLE_DISABLE -> {
+                val heartBeatstatus = toInt(propertyValue.value)
+                _heartBeatstatus.value = heartBeatstatus
+        }
+
+		PROP_ID_HAZARD_LIGHT_TELLTALE -> {
+                    val hazardLightTellTale = toInt(propertyValue.value)
+                    _hazardLightTellTale.value = hazardLightTellTale
+                }
+
+                PROP_ID_MOTOR_ARM_DISARM_TELLTALE -> {
+                    val motorArmDisarmTellTale = toInt(propertyValue.value)
+                    _motorArmDisarmTellTale.value = motorArmDisarmTellTale
+                }
+
                 PROP_ID_LOCKDOWN -> {
                     val lockdown = toInt(propertyValue.value)
                     _lockdown.value = lockdown
@@ -318,10 +369,10 @@ class CarViewModel(private val carRepository: CarRepository?) : ViewModel() {
                     _mcThermal.value = mcThermal
                 }
 
-                PROP_ID_CHARGER_EVT -> {
+                  PROP_ID_CHARGER_EVT -> {
                     val chargerEvt = toInt(propertyValue.value)
+                    _chargerEvt.value = chargerEvt
                     d("VHALData", "chargerEvt: $chargerEvt")
-                    _chargeEvt.value = chargerEvt
                 }
             }
         }
@@ -364,33 +415,16 @@ class CarViewModel(private val carRepository: CarRepository?) : ViewModel() {
             _paFwd.value = vcuInfo.hasFlag(VcuStatusFlags.STAT_VCU_PA_MODE_FWD)
             _paRev.value = vcuInfo.hasFlag(VcuStatusFlags.STAT_VCU_PA_MODE_REV)
 
-            _ccOff.value = vcuInfo.hasFlag(VcuMiscFlags.STAT_VCU_MC_CC_OFF)
-            _ccActive.value = vcuInfo.hasFlag(VcuMiscFlags.STAT_VCU_MC_CC_ACTIVE)
-            _ccSTBY.value = vcuInfo.hasFlag(VcuMiscFlags.STAT_VCU_MC_CC_STBY)
-            _ccError.value = vcuInfo.hasFlag(VcuMiscFlags.STAT_VCU_MC_CC_ERROR)
             _thermalRunwayV.value = vcuInfo.hasBmsFlag(BmsStatusFlags.STAT_THRM_RUNAWAY_ALRT_V)
             _thermalRunwayH.value = vcuInfo.hasBmsFlag(BmsStatusFlags.STAT_THRM_RUNAWAY_ALRT_H)
             _thermalRunwayT.value = vcuInfo.hasBmsFlag(BmsStatusFlags.STAT_THRM_RUNAWAY_ALRT_T)
             _keyOff.value=vcuInfo.hasFlag(VcuStatusFlags.STAT_VCU_VEHICLE_KEY_OFF)
 
+            d("thermalRunawayH_CVM","thermalRunwayH: $thermalRunwayH")
+            d("thermalRunawayV_CVM","thermalRunwayV: $thermalRunwayV")
+            d("thermalRunawayT_CVM","thermalRunwayT: $thermalRunwayT")
 
-            val radarState = vcuInfo.hasFlag(VcuMiscFlags.STAT_VCU_RDR_BSM_TURNED_OFF)
-            val radarMalFunction =
-                vcuInfo.hasFlag(VcuMiscFlags.STAT_VCU_RDR_SENSOR_LIMITED) || vcuInfo.hasFlag(
-                    VcuMiscFlags.STAT_VCU_RDR_SENSOR_INSPECTION
-                )
-                        || vcuInfo.hasFlag(VcuMiscFlags.STAT_VCU_RDR_SENSOR_BLOCKED) || vcuInfo.hasFlag(
-                    VcuMiscFlags.STAT_VCU_RDR_SENSOR_INSPECTION
-                ) || vcuInfo.hasFlag(VcuMiscFlags.STAT_VCU_RDR_BSM_ERROR)
-                        || vcuInfo.hasFlag(VcuMiscFlags.STAT_VCU_RDR_BSM_DISABLED) || vcuInfo.hasFlag(
-                    VcuMiscFlags.STAT_VCU_RDR_FRONT_CRC_ERR
-                ) || vcuInfo.hasFlag(VcuMiscFlags.STAT_VCU_RDR_REAR_CRC_ERR)
 
-            _radarTelltaleState.value = when {
-                radarMalFunction && radarState -> RadarTelltaleState.Malfunction
-                radarState -> RadarTelltaleState.On
-                else -> RadarTelltaleState.Off
-            }
 
             d(
                 "VCU_STATUS",
@@ -539,7 +573,9 @@ class CarViewModel(private val carRepository: CarRepository?) : ViewModel() {
                 isRightAlert -> RadarState.Alert
                 else -> RadarState.Off
             }
-
+          
+            _rcwRadarState.value = miscInfo.hasFlag(VcuMiscFlags.STAT_VCU_RDR_RCW_ALRT)
+            
             _ballisticPlus.value = miscInfo.hasFlag(VcuMiscFlags.STAT_VCU_MC_SURGE_MODE)
             val radarSensorBlocked = miscInfo.hasFlag(VcuMiscFlags.STAT_VCU_RDR_SENSOR_BLOCKED)
             val radarSensorDisabled = miscInfo.hasFlag(VcuMiscFlags.STAT_VCU_RDR_SENSOR_DISABLED)
@@ -553,6 +589,32 @@ class CarViewModel(private val carRepository: CarRepository?) : ViewModel() {
             val radarSensorBSMLeftAlert = miscInfo.hasFlag(VcuMiscFlags.STAT_VCU_RDR_BSM_LHS_ALRT)
             val radarSensorRCWAlert = miscInfo.hasFlag(VcuMiscFlags.STAT_VCU_RDR_RCW_ALRT)
             val _ballisticPlusEnable = miscInfo.hasFlag(VcuMiscFlags.STAT_VCU_MC_SURGE_MODE)
+
+            _ccOff.value = miscInfo.hasFlag(VcuMiscFlags.STAT_VCU_MC_CC_OFF)
+            _ccActive.value = miscInfo.hasFlag(VcuMiscFlags.STAT_VCU_MC_CC_ACTIVE)
+            _ccSTBY.value = miscInfo.hasFlag(VcuMiscFlags.STAT_VCU_MC_CC_STBY)
+            _ccError.value = miscInfo.hasFlag(VcuMiscFlags.STAT_VCU_MC_CC_ERROR)
+            val radarState = miscInfo.hasFlag(VcuMiscFlags.STAT_VCU_RDR_BSM_TURNED_OFF)
+            val radarMalFunction =
+                miscInfo.hasFlag(VcuMiscFlags.STAT_VCU_RDR_SENSOR_LIMITED) || miscInfo.hasFlag(
+                    VcuMiscFlags.STAT_VCU_RDR_SENSOR_INSPECTION
+                )
+                        || miscInfo.hasFlag(VcuMiscFlags.STAT_VCU_RDR_SENSOR_BLOCKED) || miscInfo.hasFlag(
+                    VcuMiscFlags.STAT_VCU_RDR_SENSOR_INSPECTION
+                ) || miscInfo.hasFlag(VcuMiscFlags.STAT_VCU_RDR_BSM_ERROR)
+                        || miscInfo.hasFlag(VcuMiscFlags.STAT_VCU_RDR_BSM_DISABLED) || miscInfo.hasFlag(
+                    VcuMiscFlags.STAT_VCU_RDR_FRONT_CRC_ERR
+                ) || miscInfo.hasFlag(VcuMiscFlags.STAT_VCU_RDR_REAR_CRC_ERR)
+
+            _radarTelltaleState.value = when {
+                radarMalFunction && radarState -> RadarTelltaleState.Malfunction
+                radarState -> RadarTelltaleState.On
+                else -> RadarTelltaleState.Off
+            }
+            d("Cruise_CVM","ccOff: $ccOff")
+            d("Cruise_CVM","ccActive: $ccActive")
+            d("Cruise_CVM","ccSTBY: $ccSTBY")
+            d("Cruise_CVM","ccError: $ccError")
             d("RADAR_DATA", "RadarSensorBlocked:$radarSensorBlocked")
             d("RADAR_DATA", "RadarSensorDisabled:$radarSensorDisabled")
             d("RADAR_DATA", "RadarSensorLimited:$radarSensorLimited")
@@ -692,7 +754,10 @@ class CarViewModel(private val carRepository: CarRepository?) : ViewModel() {
         val pitch = data.float
         val odometer = data.float
         val bmsId = parseDevUid(data)
-        val throttleVoltage = ByteArray(4).apply { data.get(this) }
+        val throttlePercent = data.get().toUByte()
+        val mcAutotuneVcuStatus = data.get().toUByte()
+        val mcAutotuneMcuStatus = data.get().toUByte()
+        val swifCode = data.get().toUByte()
         val speed = ByteArray(4).apply { data.get(this) }
         val actualSpeed = ByteArray(4).apply { data.get(this) }
         val distance = ByteArray(4).apply { data.get(this) }
@@ -708,7 +773,8 @@ class CarViewModel(private val carRepository: CarRepository?) : ViewModel() {
         val bus = data.get().toUByte()
         return VcuInfoMsg(
             apiVersion, msgSequence, millis, statusH, statusL,
-            vcuStatusH, vcuStatusL, roll, pitch, odometer, bmsId, throttleVoltage,
+            vcuStatusH, vcuStatusL, roll, pitch, odometer, bmsId,
+            throttlePercent, mcAutotuneVcuStatus, mcAutotuneMcuStatus, swifCode, // Updated
             speed, actualSpeed, distance, vehicleMetaData, miscInfo,
             whPerKm, whPerKmRegen, availableModes, currentRideMode,
             vehicleRangeType, range, rtc, bus
@@ -935,7 +1001,11 @@ class CarViewModel(private val carRepository: CarRepository?) : ViewModel() {
             hazardLamps = extract(data, 48, 1),
             regenLevel = extract(data, 49, 4),
             criticalMalfunction = extract(data, 53, 1),
-            reserved = extract(data, 54, 10)
+            radarIndicator = extract(data, 54, 2),
+            motorNoArmCause = extract(data,56,4),
+            availableRideModes=extract(data,60,3),
+            thermalRunway=extract(data,63,1),
+            reserved = extract(data, 64, 1)
         )
         return tellTales
     }
@@ -969,14 +1039,66 @@ class CarViewModel(private val carRepository: CarRepository?) : ViewModel() {
         }
     }
 
-    fun toInt(rawValue: Any?): Int {
+     fun toInt(rawValue: Any?): Int {
         return when (rawValue) {
             is Byte -> rawValue.toInt() and 0xFF
             is Int -> rawValue
+            is IntArray -> rawValue.getOrNull(0) ?: 0
+            is Array<*> -> rawValue.filterIsInstance<Int>().firstOrNull() ?: 0
             else -> 0
         }
     }
 
+
+    fun startHeartbeat() {
+        if (heartbeatJob?.isActive == true) {
+            d("Heartbeat", "already running, skipping restart")
+            return
+        }
+
+        heartbeatCounter = 0L
+        isHeartbeatEnabled = true
+
+        heartbeatJob = viewModelScope.launch(Dispatchers.IO) {
+            d("Heartbeat", "started")
+            while (isActive) {
+                if (isHeartbeatEnabled) {
+                    val payload = buildHeartbeatPayload()
+                    sendByteArrayProperty(MSG_ID_USB_HEARTBEAT_IMX_S32, payload)
+                    d("Heartbeat", "Heartbeat sent | counter=${heartbeatCounter++} epoch=${System.currentTimeMillis() / 1000}")
+                } else {
+                    d("Heartbeat", "Heartbeat suppressed | enabled=$isHeartbeatEnabled")
+                }
+                delay(1000L)
+            }
+            d("Heartbeat", "stopped")
+        }
+    }
+
+    fun stopHeartbeat() {
+        isHeartbeatEnabled = false
+        heartbeatJob?.cancel()
+        heartbeatJob = null
+    }
+
+    fun buildHeartbeatPayload(): ByteArray {
+        val counter = (heartbeatCounter and 0xFFFFFFFFL).toInt()
+        heartbeatCounter++
+
+        val unixEpochSeconds = System.currentTimeMillis() / 1000L
+
+        val buffer = java.nio.ByteBuffer.allocate(28)
+        buffer.order(java.nio.ByteOrder.LITTLE_ENDIAN)
+        buffer.putInt(counter)           // uint32_t counter  (4 bytes)
+        buffer.putLong(unixEpochSeconds) // uint64_t unix_epoch (8 bytes)
+        buffer.putLong(0L)               // uint64_t reserved0  (8 bytes)
+        buffer.putLong(0L)               // uint64_t reserved1  (8 bytes)
+        return buffer.array()
+    }
+
+
 }
+
+
 
 

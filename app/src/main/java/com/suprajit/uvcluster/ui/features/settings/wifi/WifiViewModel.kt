@@ -1,5 +1,7 @@
 package com.suprajit.uvcluster.ui.features.settings.wifi
 
+import android.net.wifi.WifiConfiguration
+import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -26,6 +28,7 @@ class WifiViewModel(private val wifiRepository: WifiRepository): ViewModel() {
 //    val scanResult : LiveData<List<String>>
 //        get() = _scanResult
 
+    private val TAG = "WifiViewModel"
 
     private val _currentSignalLevel = MutableStateFlow(0)
     val currentSignalLevel: StateFlow<Int> = _currentSignalLevel.asStateFlow()
@@ -33,6 +36,11 @@ class WifiViewModel(private val wifiRepository: WifiRepository): ViewModel() {
 
     val scanResult: LiveData<List<WifiUiModel>>
         get() = _scanResult
+
+    private val _saveNetworkList = MutableLiveData<List<WifiUiModel>>()
+
+    val saveNetworkList: LiveData<List<WifiUiModel>>
+        get() = _saveNetworkList
 
     //27/01/2026
     private var _connectionState = MutableStateFlow<Boolean>(false)
@@ -43,6 +51,12 @@ class WifiViewModel(private val wifiRepository: WifiRepository): ViewModel() {
     private var _wifiState = MutableStateFlow(isWifiEnabled())
     val onWifiStateChange : StateFlow<Boolean>
         get() = _wifiState.asStateFlow()
+
+
+    private var _reconnectSSID = MutableStateFlow<String?>(null)
+    val reconnectSSID : StateFlow<String?>
+        get() = _reconnectSSID.asStateFlow()
+
 
 
     fun startSignalMonitoring() {
@@ -87,7 +101,7 @@ class WifiViewModel(private val wifiRepository: WifiRepository): ViewModel() {
      * @param ssid The SSID of the hotspot.
      * @param password The password for the hotspot.
      */
-    fun connectHotspot(ssid: String, password: String) = wifiRepository.connectHotspot(ssid, password)
+    fun connectHotspot(ssid: String, password: String) = wifiRepository.connectHotspot(ssid, password, true)
 
     /**
      * Initiates a scan to discover available Wi-Fi networks.
@@ -117,6 +131,7 @@ class WifiViewModel(private val wifiRepository: WifiRepository): ViewModel() {
 //    }
     fun scanResult() {
         wifiRepository.scanResult { results ->
+            Log.d(TAG, "scanResult:  wifiRepository.scanResult :: $results")
 
             val connectedSsid = getConnectedWifiSSID()
 
@@ -140,7 +155,44 @@ class WifiViewModel(private val wifiRepository: WifiRepository): ViewModel() {
                 }
                 .distinctBy { it.ssid }
 
+            Log.d(TAG, "scanResult: Final Wifi :: $wifiList ")
             _scanResult.value = wifiList
+        }
+    }
+
+
+    fun getSavedNetworkList(){
+        wifiRepository.savedNetworkList{savedList->
+            val tempSavedNetworkList= savedList.toUiModels()
+            _saveNetworkList.value =  tempSavedNetworkList
+        }
+    }
+
+
+    fun isSavedNetworkListEmpty(): Boolean {
+        return _saveNetworkList.value.isNullOrEmpty()
+    }
+
+    fun connectToSavedNetwork(ssid: String){
+        wifiRepository.connectToSavedNetwork(ssid)
+    }
+
+
+
+    fun List<WifiConfiguration>.toUiModels(): List<WifiUiModel> {
+        return this.map { config ->
+            val ssid = config.SSID.trim('"')   // remove quotes around SSID
+
+            val isSecured = config.allowedKeyManagement.get(WifiConfiguration.KeyMgmt.WPA_PSK) ||
+                    config.allowedKeyManagement.get(WifiConfiguration.KeyMgmt.WPA_EAP) ||
+                    config.allowedKeyManagement.get(WifiConfiguration.KeyMgmt.IEEE8021X) ||
+                    config.wepKeys.any { !it.isNullOrBlank() }
+
+            WifiUiModel(
+                ssid = ssid,
+                level = 0,
+                isSecured = isSecured
+            )
         }
     }
 
@@ -150,10 +202,27 @@ class WifiViewModel(private val wifiRepository: WifiRepository): ViewModel() {
 
     //27/01/2026
     fun wifiConnected(){
+        Log.d(TAG, "wifiConnected: Entry")
         wifiRepository.connectionState {isConnected->
+            Log.d(TAG, "wifiConnected: Connection state Changed :: $isConnected")
             _connectionState.value = isConnected
         }
     }
 
+    ///WIFFI
+    fun autoConnectWifi() {
+        wifiRepository.startScan()
+    }
+
+
+    fun wifiReconnectRequest() {
+        wifiRepository.reconnectRequestSSID{ssid->
+            _reconnectSSID.value = ssid
+        }
+
+    }
+    ///END
+
 }
+
 

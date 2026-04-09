@@ -59,4 +59,5 @@
     <color name="motorArmedGreyLight">#C2C2C2</color>
     <color name ="ballisticGrey">#8E8E8E</color>
     <color name ="chargingGreen">#3FB983</color>
+    <color name ="greylightpb">#CACACA</color>
 </resources>

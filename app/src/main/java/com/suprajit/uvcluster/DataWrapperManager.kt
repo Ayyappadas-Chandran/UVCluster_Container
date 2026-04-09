@@ -7,8 +7,12 @@ import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
 import android.os.Build
+import android.telephony.CellSignalStrengthLte
+import android.telephony.SignalStrength
+import android.telephony.TelephonyCallback
 import android.telephony.TelephonyManager
 import android.util.Log.d
+import androidx.annotation.RequiresApi
 import androidx.annotation.RequiresPermission
 
 class DataWrapperManager(private val context: Context) {
@@ -61,6 +65,58 @@ class DataWrapperManager(private val context: Context) {
             method.invoke(connectivityManager, enabled)
         } catch (e: Exception) {
             e.printStackTrace()
+        }
+    }
+
+    //bars
+    private val telephonyManager =
+        context.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
+
+    private var callback: TelephonyCallback? = null
+
+    @RequiresApi(Build.VERSION_CODES.S)
+    fun startListening(onSignalChanged: (Int) -> Unit) {
+
+        callback = object : TelephonyCallback(),
+            TelephonyCallback.SignalStrengthsListener {
+
+            override fun onSignalStrengthsChanged(signalStrength: SignalStrength) {
+
+                try {
+                    var isSignalFound = false
+
+                    signalStrength.cellSignalStrengths.forEach { cell ->
+                        if (cell is CellSignalStrengthLte) {
+
+                            val level = cell.level
+
+                            if (level in 0..4) {
+                                onSignalChanged(level)
+                                isSignalFound = true
+                            }
+                        }
+                    }
+
+                    //  If no LTE signal found
+                    if (!isSignalFound) {
+                        d("SignalMonitor", "Signal not found")
+                    }
+
+                } catch (e: Exception) {
+                    d("SignalMonitor", "Signal not found", e)
+                }
+            }
+        }
+
+        telephonyManager.registerTelephonyCallback(
+            context.mainExecutor,
+            callback!!
+        )
+    }
+
+    fun stop() {
+        callback?.let {
+            telephonyManager.unregisterTelephonyCallback(it)
         }
     }
 }

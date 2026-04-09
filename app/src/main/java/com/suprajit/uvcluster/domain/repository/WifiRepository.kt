@@ -1,5 +1,6 @@
 package com.suprajit.uvcluster.domain.repository
 import android.net.wifi.ScanResult
+import android.net.wifi.WifiConfiguration
 
 /**
  * Defines Wi-Fi-related operations to be implemented by a repository.
@@ -10,7 +11,7 @@ interface WifiRepository {
     fun isWifiEnabled(): Boolean
 
     /** Connects to a Wi-Fi hotspot using the given [ssid] and [password]. */
-    fun connectHotspot(ssid: String, password: String)
+    fun connectHotspot(ssid: String, password: String, isManual: Boolean)
 
     /** Starts scanning for available Wi-Fi networks. */
     fun startScan()
@@ -26,6 +27,7 @@ interface WifiRepository {
 
 
     fun scanResult(callback: (List<ScanResult>) -> Unit)
+    fun savedNetworkList(callback: (List<WifiConfiguration>) -> Unit)
     fun enableWifi(enable: Boolean)
 
     fun wifiStateChange(callback: (Boolean) -> Unit)
@@ -40,6 +42,10 @@ interface WifiRepository {
 
     fun getCurrentSignalLevel(): Int
 
+    fun connectToSavedNetwork(ssid: String)
+    
+    fun reconnectRequestSSID(callback: (String?) -> Unit)
 
 }
+
 

@@ -4,10 +4,12 @@ import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import androidx.navigation.NavController
+import com.suprajit.uvcluster.domain.ennumerate.ButtonNavigation
 import com.suprajit.uvcluster.domain.ennumerate.VcuMiscFlags
-import com.suprajit.uvcluster.domain.ennumerate.VcuStatusFlags
 import com.suprajit.uvcluster.ui.viewModel.CarViewModel
 import com.suprajit.uvcluster.ui.viewModel.SharedViewModel
+import com.suprajit.uvcluster.utils.Utilities
 import com.suprajit.uvcluster.utils.Utilities.ChargeStatusFlag
 import kotlinx.coroutines.*
 
@@ -29,6 +31,12 @@ object NotificationManager {
     private var isAbsTcMalfunctionShown = false
     private var lastChargeValue: UInt = 0u
     private var lastSocCategory: Int = -1
+    private var navController: NavController? = null
+    private var prevSoc: Int? = null
+    private var prevRegenUnavailable: Int = 0
+    private var prevModeHover: Int = 0
+    private var prevRideModes: Int = -1
+    private var prevHillHold: Int = -1
 
     fun init(context: Context, carViewModel: CarViewModel, sharedViewModel: SharedViewModel) {
         Log.e(TAG, "[MGR] init() called. Instance: ${this.hashCode()}")
@@ -118,27 +126,97 @@ object NotificationManager {
         scope.launch {
             carViewModel.tellTales.collect { tellTales ->
                 if (sharedViewModel.hasThemeConfigChanged) return@collect
+
+                // Null safety for object + SOC
                 val soc = tellTales?.batterySoc ?: return@collect
                 if (soc == 0) return@collect
 
-                val currentCategory = when {
-                    soc <= 5 -> 0
-                    soc <= 10 -> 1
-                    soc <= 30 -> 2
-                    soc <= 99 -> 3
-                    else -> -1
+                // Normalize nullable signals (important for stability)
+                val regenUnavailable = tellTales.regenUnavailable ?: 0
+                val modeHover = tellTales.modeHover ?: 0
+                val rideModes = tellTales.availableRideModes ?: -1
+                val hillHold = tellTales.hillHold ?: -1
+
+                // -------------------------------
+                // SOC transition
+                // -------------------------------
+                if (prevSoc != soc) {
+                    if (soc == 11) {
+                        show(
+                            ClusterNotification.Params(
+                                "SWITCHING TO GLIDE",
+                                "At 10% battery"
+                            )
+                        )
+                    }
+                    prevSoc = soc
                 }
 
-                if (currentCategory != lastSocCategory && currentCategory != -1) {
-                    Log.e(TAG, "[MGR] BATT: Category shift $lastSocCategory -> $currentCategory (SOC: $soc%)")
-                    val params = when (currentCategory) {
-                        0 -> ClusterNotification.Params("BATTERY CRITICALLY LOW", "Hover mode initiated")
-                        1 -> ClusterNotification.Params("SWITCHING TO GLIDE", "At 10% battery")
-                        3 -> ClusterNotification.Params("REGEN AVAILABLE", "Adjust levels with nav keys")
-                        else -> null
+                // -------------------------------
+                // Regen availability transition
+                // -------------------------------
+                if (prevRegenUnavailable != regenUnavailable) {
+                    if (regenUnavailable == 1) {
+                        show(
+                            ClusterNotification.Params(
+                                "REGEN UNAVAILABLE",
+                                " "
+                            )
+                        )
+                    } else {
+                        show(
+                            ClusterNotification.Params(
+                                "REGEN AVAILABLE",
+                                "Adjust levels with nav keys"
+                            )
+                        )
                     }
-                    params?.let { show(it) }
-                    lastSocCategory = currentCategory
+                    prevRegenUnavailable = regenUnavailable
+                }
+
+                // -------------------------------
+                // Hover mode transition
+                // -------------------------------
+                if (prevModeHover != modeHover) {
+                    if (modeHover == 1) {
+                        show(
+                            ClusterNotification.Params(
+                                "BATTERY CRITICALLY LOW",
+                                "Hover mode initiated"
+                            )
+                        )
+                    }
+                    prevModeHover = modeHover
+                }
+
+                // -------------------------------
+                // Ride mode transition
+                // -------------------------------
+                if (prevRideModes != rideModes) {
+                    if (rideModes == 4) {
+                        show(
+                            ClusterNotification.Params(
+                                "SWITCHED TO GLIDE",
+                                " "
+                            )
+                        )
+                    }
+                    prevRideModes = rideModes
+                }
+
+                // -------------------------------
+                // Hill hold transition
+                // -------------------------------
+                if (prevHillHold != hillHold) {
+                    if (hillHold == 4) {
+                        show(
+                            ClusterNotification.Params(
+                                "DISENGAGING HILL HOLD IN 5S",
+                                "Apply brakes for your safety"
+                            )
+                        )
+                    }
+                    prevHillHold = hillHold
                 }
             }
         }
@@ -175,7 +253,7 @@ object NotificationManager {
 
                 if (miscInfo.hasFlag(VcuMiscFlags.STAT_VCU_MISC_MTC_ERROR) && !isTcMalfunctionShown) {
                     Log.e(TAG, "[MGR] ERROR: MTC Failure detected")
-                    show(ClusterNotification.Params("TC MALFUNCTION", "Please contact customer support"))
+                    //show(ClusterNotification.Params("TC MALFUNCTION", "Please contact customer support"))
                     isTcMalfunctionShown = true
                 }
 
@@ -187,12 +265,19 @@ object NotificationManager {
                 }*/
             }
         }
+        scope.launch {
+            carViewModel.swiftButton.collect { swiftButton ->
+                val button = Utilities.getButtonState(swiftButton)
+                if (button == ButtonNavigation.None) return@collect
+                handleButtonNavigation(button.ordinal)
+            }
+        }
 
         // 6. Hill Hold & Malfunctions
-        scope.launch {
-            carViewModel.hillHoldState.collect { hillHoldState ->
+    /*    scope.launch {
+            carViewModel.tellTales.collect { telltales ->
                 if (sharedViewModel.hasThemeConfigChanged) return@collect
-                if (hillHoldState == 1) {
+                if (telltales.hillHold == 4) {
                     show(
                         ClusterNotification.Params(
                             "DISENGAGING HILL HOLD IN 5S",
@@ -201,7 +286,7 @@ object NotificationManager {
                     )
                 }
             }
-        }
+        }*/
     }
 
     private fun showForChargeFlag(flag: ChargeStatusFlag) {
@@ -214,8 +299,23 @@ object NotificationManager {
         }
         show(params)
     }
+    private fun handleButtonNavigation(button: Int) {
+        when (button) {
+
+            ButtonNavigation.Enter.ordinal -> if (navController?.currentDestination?.id == R.id.dashboardFragment){
+                show(
+                    ClusterNotification.Params(
+                        "Cruise Control Unavailable",
+                        ""
+                    )
+                )
+            }
+        }
+    }
 
     private fun buildSideStandParams() = ClusterNotification.Params("SIDE STAND DEPLOYED", "Motor disarmed")
     private fun isBitSet(value: ULong, bit: Int): Boolean = ((value shr bit) and 1uL) == 1uL
     private fun isBitSet(value: UInt, bit: Int): Boolean = ((value shr bit) and 1u) == 1u
 }
+
+

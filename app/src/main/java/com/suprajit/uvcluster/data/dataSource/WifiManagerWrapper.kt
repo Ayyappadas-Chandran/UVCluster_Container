@@ -1,6 +1,7 @@
 package com.suprajit.uvcluster.data.dataSource
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -12,11 +13,14 @@ import android.net.wifi.ScanResult
 import android.net.wifi.WifiConfiguration
 import android.net.wifi.WifiManager
 import android.net.wifi.WifiNetworkSuggestion
+import android.util.Log
 import android.util.Log.d
 import android.util.Log.e
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import com.suprajit.uvcluster.R
+import android.net.wifi.WifiInfo
+//import android.net.wifi.WifiEnterpriseConfig
 
 /**
  * A wrapper class to manage Wi-Fi operations such as scanning,  connecting to a hotspot,
@@ -29,27 +33,92 @@ import com.suprajit.uvcluster.R
  */
 class WifiManagerWrapper(private val context: Context) {
     private val tag = WifiManagerWrapper::class.java.simpleName
+
+    private val TAG = "WifiManagerWrapper"
     private val wifiManager = context.getSystemService(Context.WIFI_SERVICE) as WifiManager
     private var onScanResult: ((List<String>) -> Unit)? = null
     private var onWifiStateChanged: ((Boolean) -> Unit)? = null
     private var onConnectionState: ((Boolean) -> Unit)? = null
+    private var wifiReconnectedRequestSSID: ((String?) -> Unit)? = null
+
+    ///NEW WIFI
+    private var suggestionAdded = false
+
+
+
+
+
+    ////WIFFI
+
+
+    private var isManualConnection = false
+
+    data class WifiCred(
+        val ssid: String,
+        val password: String,
+        val user: String? = null
+    )
+
+    private val clusterConfig: List<WifiCred> = listOf(
+        WifiCred("A71 - Engineering", "4cU64c7c", "beacon@ultraviolette.com"),
+        WifiCred("UV Factory A - Manufacturing", "4cU64c7c", "beacon@ultraviolette.com"),
+        WifiCred("UV-2017", "4cU64c7c", "beacon@ultraviolette.com"),
+        WifiCred("UV - dealer", "4cU64c7c2c"),
+        WifiCred("Pixel_shetty", "123456789"),
+        WifiCred("Xiaomi_das", "qwertyuiopp")
+
+
+    )
+    ///END
 
     /** BroadcastReceiver for handling Wi-Fi scan results*/
     //27/01/2026
     private val wifiReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
+            d(TAG, "onReceive wifiReceiver :: Entry   ACTION :: ${intent?.action}")
             if (intent?.action == WifiManager.WIFI_STATE_CHANGED_ACTION) {
                 val wifiState =
                     intent.getIntExtra(WifiManager.EXTRA_WIFI_STATE, WifiManager.WIFI_STATE_UNKNOWN)
+                d(TAG, "onReceive: WIFI State :: $wifiState")
                 onWifiStateChanged?.invoke(wifiState == WifiManager.WIFI_STATE_ENABLED)
             }
-            val cm = context?.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+            
+
+
+	   val error = intent?.getIntExtra(WifiManager.EXTRA_SUPPLICANT_ERROR, -1)
+            d(TAG, "onReceive: Error :: $error")
+            if (error == WifiManager.ERROR_AUTHENTICATING) {
+                val wifiInfo = intent?.getParcelableExtra<WifiInfo>(WifiManager.EXTRA_WIFI_INFO)
+                val ssid = wifiInfo?.ssid?.trim('"')
+
+                // Get saved networks list
+                val savedNetworks = wifiManager.configuredNetworks ?: emptyList()
+                val isSaved = savedNetworks.any { it.SSID.trim('"') == ssid }
+
+                if (isSaved) {
+                    Log.d(TAG, "Authentication failed for saved SSID: $ssid")
+                    wifiReconnectedRequestSSID?.invoke(ssid)
+                } else {
+                    Log.d(TAG, "Auth failed for SSID $ssid, but it is not in saved list")
+                }
+            }
+
+
+	    val cm = context?.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
             val network = cm.activeNetwork
             val capabilities = cm.getNetworkCapabilities(network)
             val isWifiConnected =
                 capabilities?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true
             d("WifiConnectionState","Is Wifi connected :$isWifiConnected")
             onConnectionState?.invoke(isWifiConnected)
+
+            ///WIFFI
+            if (isWifiConnected) {
+                d(TAG, "onReceive: isWifiConnected :: Entry")
+                resetManualConnection()
+                suggestionAdded = false
+            }
+            ///END
             val success = intent?.getBooleanExtra(WifiManager.EXTRA_RESULTS_UPDATED, false) ?: false
             if (ActivityCompat.checkSelfPermission(
                     this@WifiManagerWrapper.context, Manifest.permission.ACCESS_FINE_LOCATION
@@ -57,9 +126,9 @@ class WifiManagerWrapper(private val context: Context) {
             ) {
                 return
             }
-            if (success) {
-                handleScanSuccess()
-            } else {
+            autoConnectFromClusterConfig()
+
+            if (!success) {
                 handleScanFailure()
             }
         }
@@ -67,6 +136,7 @@ class WifiManagerWrapper(private val context: Context) {
 
     /** Returns the state of the Wi-Fi on the device */
     fun isWifiEnabled(): Boolean {
+        d(TAG, "isWifiEnabled: Entry")
         return wifiManager.isWifiEnabled
     }
 
@@ -87,9 +157,34 @@ class WifiManagerWrapper(private val context: Context) {
         }
     }
 
+    fun getWifiStatus() {
+        d(TAG, "getWifiStatus: Entry")
+        val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val network = cm.activeNetwork
+        val capabilities = cm.getNetworkCapabilities(network)
+        val isWifiConnected = capabilities?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true
+        d(TAG, "getWifiStatus: WiFi Status Manual Check :: $isWifiConnected")
+        onConnectionState?.invoke(isWifiConnected)
+    }
 
 
+
+///WIFFI
     /** Starts a Wi-Fi scan and registers the broadcast receiver to handle scan results.*/
+//    fun startScan() {
+//        if (ActivityCompat.checkSelfPermission(
+//                context, Manifest.permission.ACCESS_FINE_LOCATION
+//            ) != PackageManager.PERMISSION_GRANTED
+//        ) {
+//            return
+//        }
+//        val results = wifiManager.scanResults
+//        d(tag, "results :${results.size}")
+//        val ssids = results.map(ScanResult::SSID).filter { it.isNotEmpty() }
+//        onScanResult?.invoke(ssids)
+//    }
+
+
     fun startScan() {
         if (ActivityCompat.checkSelfPermission(
                 context, Manifest.permission.ACCESS_FINE_LOCATION
@@ -97,12 +192,17 @@ class WifiManagerWrapper(private val context: Context) {
         ) {
             return
         }
-        val results = wifiManager.scanResults
-        d(tag, "results :${results.size}")
-        val ssids = results.map(ScanResult::SSID).filter { it.isNotEmpty() }
-        onScanResult?.invoke(ssids)
+
+        val success = wifiManager.startScan()
+        d(tag, "Scan triggered: $success")
+        ///NEW WIFI
+
+            autoConnectFromClusterConfig()
+
+        ///END
     }
 
+    ///END
     /** Handles successful Wi-Fi scan results. */
     private fun handleScanSuccess() {
         if (ActivityCompat.checkSelfPermission(
@@ -129,7 +229,11 @@ class WifiManagerWrapper(private val context: Context) {
      * @param ssid The SSID of the hotspot.
      * @param password The password for the hotspot.
      */
-    fun connectHotspot(ssid: String, password: String) {
+    fun connectHotspot(ssid: String, password: String, isManual: Boolean = false) {
+
+        ///WIFFI
+        isManualConnection = isManual
+        ///END
         val wifiManager = context.getSystemService(Context.WIFI_SERVICE) as WifiManager
         val wifiConfig = WifiConfiguration().apply {
             SSID = "\"$ssid\""
@@ -160,14 +264,18 @@ class WifiManagerWrapper(private val context: Context) {
      * @return SSID of the connected Wi-Fi or empty string if not connected.
      */
     fun getConnectedWifiSSID(): String {
+        d(TAG, "getConnectedWifiSSID: Entry")
         val connectivityManager =
             context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         val network = connectivityManager.activeNetwork ?: return ""
         val networkCapabilities = connectivityManager.getNetworkCapabilities(network) ?: return ""
+        d(TAG, "getConnectedWifiSSID: Network :: $network  ,  networkCapabilities :: $networkCapabilities")
         if (networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
             val connectionInfo = wifiManager.connectionInfo
             val ssid = connectionInfo.ssid
+            d(TAG, "getConnectedWifiSSID: SSID : $ssid")
             if (ssid != null && ssid != context.getString(R.string.unknown_ssid)) {
+                d(TAG, "getConnectedWifiSSID: Updated SSID :${ssid.trim('"')}")
                 return ssid.trim('"')
             }
         }
@@ -175,25 +283,67 @@ class WifiManagerWrapper(private val context: Context) {
     }
 
     /** Forgets the currently connected Wi-Fi network.*/
+    @SuppressLint("MissingPermission")
     fun forgetHotspot() {
-        val ssid = getConnectedWifiSSID()
-        d(tag, "Forget SSID:$ssid")
-        if (ActivityCompat.checkSelfPermission(
-                context, Manifest.permission.ACCESS_FINE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            return
-        }
-        val configuredNetworks = wifiManager.configuredNetworks
+        val ssid = getConnectedWifiSSID()?.trim('"')
+        d(tag, "Forget SSID: $ssid")
+
+        if (ssid.isNullOrEmpty()) return
+
+        val configuredNetworks = wifiManager.configuredNetworks ?: return
         for (config in configuredNetworks) {
-            if (config.SSID == "\"$ssid\"") {
+            if (config.SSID.trim('"') == ssid) {
+                // Disconnect immediately
+                wifiManager.disconnect()
+
+                // Disable the network so it won’t reconnect in this session
+                val disabled = wifiManager.disableNetwork(config.networkId)
+                d(tag, "Disabled network for SSID: $ssid - Success: $disabled")
+
+                // Remove the network from system configuration
                 val removed = wifiManager.removeNetwork(config.networkId)
-                wifiManager.saveConfiguration()
                 d(tag, "Removed network for SSID: $ssid - Success: $removed")
+
+                // Persist changes so they survive reboot / WiFi toggle
+                val saved = wifiManager.saveConfiguration()
+                d(tag, "Saved configuration after removal - Success: $saved")
+
                 break
             }
         }
     }
+
+
+
+    fun getSavedNetworkList(callback: (List<WifiConfiguration>) -> Unit) {
+        val savedNetworks: List<WifiConfiguration> = wifiManager.configuredNetworks ?: emptyList()
+
+        // Deduplicate by SSID (removing quotes around names)
+        val uniqueNetworks = savedNetworks
+            .groupBy { it.SSID.trim('"') }
+            .map { it.value.first() }
+
+        callback(uniqueNetworks)
+    }
+
+
+    fun connectToSavedNetwork(ssid: String) {
+
+        val configs = wifiManager.configuredNetworks
+
+        val targetConfig = configs?.find { it.SSID.trim('"') == ssid }
+        targetConfig?.let { config ->
+            val networkId = config.networkId
+            if (networkId != -1) {
+                wifiManager.enableNetwork(networkId, true)
+                wifiManager.reconnect()
+                Log.d(TAG, "Connecting to $ssid")
+            } else {
+                Log.d(TAG, "Invalid networkId for $ssid")
+            }
+        }
+    }
+
 
     fun connectHotspotWithSuggestion(ssid: String, password: String) {
         val suggestion = WifiNetworkSuggestion.Builder()
@@ -244,6 +394,32 @@ class WifiManagerWrapper(private val context: Context) {
             e(tag, "Suggestion failed with status: $status")
         }
     }
+
+
+//    fun connectEnterpriseWifi(cred: WifiCred) {
+//
+//        val enterpriseConfig = WifiEnterpriseConfig().apply {
+//            identity = cred.user
+//            password = cred.password
+//            eapMethod = WifiEnterpriseConfig.Eap.PEAP
+//            phase2Method = WifiEnterpriseConfig.Phase2.MSCHAPV2
+//
+//            setDomainSuffixMatch("ultraviolette.com")
+//        }
+//
+//        val suggestion = WifiNetworkSuggestion.Builder()
+//            .setSsid(cred.ssid)
+//            .setWpa2EnterpriseConfig(enterpriseConfig)
+//            .build()
+//
+//        val status = wifiManager.addNetworkSuggestions(listOf(suggestion))
+//
+//        if (status == WifiManager.STATUS_NETWORK_SUGGESTIONS_SUCCESS) {
+//            d(tag, "Enterprise suggestion added for ${cred.ssid}")
+//        } else {
+//            e(tag, "Enterprise suggestion failed: $status")
+//        }
+//    }
 //
 //    fun scanResult(callback: (List<String>) -> Unit) {
 //        onScanResult = callback
@@ -260,7 +436,10 @@ class WifiManagerWrapper(private val context: Context) {
 
     //27/01/2026
     fun connectionState(callback: (Boolean) -> Unit) {
+        d(TAG, "connectionState: Entry")
         onConnectionState = callback
+
+        getWifiStatus()
     }
     fun getCurrentSignalLevel(): Int {
         val rssi = wifiManager.connectionInfo.rssi
@@ -270,5 +449,70 @@ class WifiManagerWrapper(private val context: Context) {
             WifiManager.calculateSignalLevel(rssi, 6)
         }
     }
+
+    ///WIFFI
+    fun autoConnectFromClusterConfig() {
+
+        if (isManualConnection) {
+            d(tag, "Manual connection active → skipping auto-connect")
+            return
+        }
+
+        val current = getConnectedWifiSSID()
+
+        val isKnownNetwork = clusterConfig.any { it.ssid == current }
+
+        if (isKnownNetwork) {
+            d(tag, "Already connected to known network: $current")
+            return
+        }
+
+        if (ActivityCompat.checkSelfPermission(
+                context, Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) return
+
+        val scanResults = wifiManager.scanResults
+
+        d(tag, "Available networks: ${scanResults.map { it.SSID }}")
+
+        for (cred in clusterConfig) {
+            val match = scanResults.find { it.SSID == cred.ssid }
+
+            if (match != null) {
+
+                if (suggestionAdded) {
+                    d(tag, "Suggestion already added, skipping")
+                    return
+                }
+
+                d(tag, "Auto connecting to ${cred.ssid}")
+
+//                if (cred.user != null) {
+//                    // ENTERPRISE WIFI
+//                    connectEnterpriseWifi(cred)
+//                } else {
+                    // PERSONAL WIFI
+                    connectHotspotWithSuggestion(cred.ssid, cred.password)
+                //}
+
+                suggestionAdded = true
+                return
+            }
+        }
+
+        d(tag, "No matching WiFi found")
+    }
+
+    fun resetManualConnection() {
+        isManualConnection = false
+    }
+
+    fun getReconnectRequestSSID(callback: (String?) -> Unit) {
+        wifiReconnectedRequestSSID = callback
+    }
+
+    ///ENDD
 }
+
 

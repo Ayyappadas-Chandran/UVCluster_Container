@@ -334,7 +334,7 @@
         android:layout_marginStart="234.37dp"
         android:layout_marginTop="129dp"
         android:fontFamily="@font/aoi_mono_extended"
-        android:text="000"
+        android:text="---"
         android:textColor="?attr/appTextColor"
         android:textSize="208.52sp"
         app:layout_constraintStart_toStartOf="parent"

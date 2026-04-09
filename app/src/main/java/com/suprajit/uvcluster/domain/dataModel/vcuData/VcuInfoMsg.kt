@@ -12,7 +12,10 @@ data class VcuInfoMsg(
     val pitch: Float = 0f,
     val odometer: Float = 0f,
     val bmsId: DevUid = DevUid(),
-    val throttleVoltage: ByteArray = byteArrayOf(),
+    val throttlePercent: UByte = 0u,
+    val mcAutotuneVcuStatus: UByte = 0u,
+    val mcAutotuneMcuStatus: UByte = 0u,
+    val swifCode: UByte = 0u,
     val speed: ByteArray = byteArrayOf(),
     val actualSpeed: ByteArray = byteArrayOf(),
     val distance: ByteArray = byteArrayOf(),
@@ -46,7 +49,10 @@ data class VcuInfoMsg(
         if (vcuStatusH != other.vcuStatusH) return false
         if (vcuStatusL != other.vcuStatusL) return false
         if (bmsId != other.bmsId) return false
-        if (!throttleVoltage.contentEquals(other.throttleVoltage)) return false
+        if (throttlePercent != other.throttlePercent) return false
+        if (mcAutotuneVcuStatus != other.mcAutotuneVcuStatus) return false
+        if (mcAutotuneMcuStatus != other.mcAutotuneMcuStatus) return false
+        if (swifCode != other.swifCode) return false
         if (!speed.contentEquals(other.speed)) return false
         if (!actualSpeed.contentEquals(other.actualSpeed)) return false
         if (!distance.contentEquals(other.distance)) return false
@@ -76,7 +82,10 @@ data class VcuInfoMsg(
         result = 31 * result + vcuStatusH.hashCode()
         result = 31 * result + vcuStatusL.hashCode()
         result = 31 * result + bmsId.hashCode()
-        result = 31 * result + throttleVoltage.contentHashCode()
+        result = 31 * result + throttlePercent.hashCode()
+        result = 31 * result + mcAutotuneVcuStatus.hashCode()
+        result = 31 * result + mcAutotuneMcuStatus.hashCode()
+        result = 31 * result + swifCode.hashCode()
         result = 31 * result + speed.contentHashCode()
         result = 31 * result + actualSpeed.contentHashCode()
         result = 31 * result + distance.contentHashCode()

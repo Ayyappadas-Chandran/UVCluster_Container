@@ -399,3 +399,4 @@ object McuPmicFaultFlag {
     /** Total number of valid PMIC diagnostic flags */
     const val MAX_PMIC_DIAG_FLAGS = 34
 }
+

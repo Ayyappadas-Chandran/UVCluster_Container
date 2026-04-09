@@ -1,5 +1,6 @@
 package com.suprajit.uvcluster.ui.features.dashboard
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Color
 import android.graphics.drawable.Drawable
@@ -19,6 +20,7 @@ import android.widget.TextView
 import androidx.annotation.StyleRes
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.content.ContextCompat
+import androidx.core.content.ContextCompat.getDrawable
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
@@ -105,7 +107,19 @@ class DashboardFragment : Fragment() {
     private var unit = ""
     private lateinit var ivBallisticPlus: ImageView
     private var radarJob: Job? = null
-    private var isMotorArmTextNeeded = true
+    private var isMotorArmed = false
+    private var isNegativePower=false
+    var regenUnAvailable=false
+    private val debugSequence = listOf(
+        ButtonNavigation.Back.ordinal,
+        ButtonNavigation.Right.ordinal,
+        ButtonNavigation.Left.ordinal,
+        ButtonNavigation.Bottom.ordinal,
+        ButtonNavigation.Left.ordinal
+    )
+    private var sequenceStep = 0
+    private var lastClickTime = 0L
+    private val SEQUENCE_TIMEOUT = 2000L
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
@@ -223,8 +237,8 @@ class DashboardFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         initViews(view)
         initObserver()
-        ivRegenLevel10.isVisible = true
-        llRegenLevel4.isVisible = false
+        ivRegenLevel10.isVisible = viewModel.is10Levels
+        llRegenLevel4.isVisible = !viewModel.is10Levels
         //ivBallisticPlus.isVisible = viewModel.isSurgeMode
         (activity as? MainActivity)?.handleToolbar(true)
         //initClickListener()
@@ -236,7 +250,7 @@ class DashboardFragment : Fragment() {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 launch {
                     carViewModel.vehicleValue.collect { vehicleValue ->
-                        d("DashboardFragment", "speed: ${vehicleValue.joinToString()}")
+                        d("L_VehicleValue", "speed: ${vehicleValue.joinToString()}")
                         updateVehicleValue(vehicleValue)
                     }
                 }
@@ -264,54 +278,7 @@ class DashboardFragment : Fragment() {
                     }
                 }
 
-                launch {
-                    carViewModel.tellTales.collect {
-                        val hoverMode = it.modeHover == 1
-                        d("DashboardFragment", "hoverMode:$hoverMode")
-                        val isMotorArmed = it.motorArmed == 1
-                        if (isMotorArmed) {
-                            if (speed == 0) {
-                                ivMtrArmed.visibility = View.VISIBLE
-                            } else {
-                                ivMtrArmed.visibility = View.INVISIBLE
-                            }
-                            isMotorArmTextNeeded = false
-                            val typedValue = TypedValue()
-                            requireContext().theme.resolveAttribute(
-                                R.attr.appTextColor,
-                                typedValue,
-                                true
-                            )
-                            if (tvSpeed.text == "---") tvSpeed.text = "000"
-                            tvSpeed.setTextColor(typedValue.data)
-                        } else {
-                            ivMtrArmed.visibility = View.INVISIBLE
-                            tvSpeed.setTextColor(
-                                ContextCompat.getColor(
-                                    requireContext(),
-                                    R.color.lightGreyMedium
-                                )
-                            )
-                            if (speed == 0) {
-                                tvSpeed.text = "---"
-                            }
-                        }
-                        viewModel.setMotorArmed(isMotorArmed)
-                        val rideModes = it.rideMode
-                        val isBallistic = it.rideMode == 3
-                        ivBallisticPlus.visibility = if (viewModel.isSurgeMode && isBallistic) View.VISIBLE else View.INVISIBLE
-                        d("DashboardFragment", "isBallisticPlus: ${viewModel.isSurgeMode && isBallistic}")
-                        updateThemeMode(rideModes)
-                        val regenValue = it.regenLevel.applyMinMax(RangeLimit(0, 9))
-                        viewModel.setRegenValue(regenValue)
-                        d("DashboardFragment", "regenValue:$regenValue")
-                    }
-                }
-                launch {
-                    viewModel.uiState.collect { uiState ->
-                        updateUi(uiState)
-                    }
-                }
+
                 launch {
                     carViewModel.regen.collect { value ->
                         /*  if (value.size < 3) {
@@ -331,7 +298,7 @@ class DashboardFragment : Fragment() {
 
                 launch {
                     carViewModel.leftRadarState.collect { state ->
-                        if (!sharedViewModel.isRadarOn) return@collect
+                        if (!sharedViewModel.isConsoleAlertsOn) return@collect
                         when (state) {
                             RadarState.Alert -> {
                                 ivBgBottomRadarLeft.visibility = View.VISIBLE
@@ -362,7 +329,7 @@ class DashboardFragment : Fragment() {
 
                 launch {
                     carViewModel.rightRadarState.collect { state ->
-                        if (!sharedViewModel.isRadarOn) return@collect
+                        if (!sharedViewModel.isConsoleAlertsOn) return@collect
                         when (state) {
                             RadarState.Alert -> {
                                 ivBgBottomRadarRight.visibility = View.VISIBLE
@@ -392,6 +359,33 @@ class DashboardFragment : Fragment() {
                     }
                 }
 
+               launch {
+                    carViewModel.rcwRadarState.collect {rcwState->
+                        if (!sharedViewModel.isConsoleAlertsOn) return@collect
+                        if(rcwState) {
+                            ivBgBottomRadarRight.setImageDrawable(
+                                ContextCompat.getDrawable(
+                                    requireContext(),
+                                    R.drawable.bg_dashboard_radar_right_alert
+                                )
+                            )
+                            
+                            ivBgBottomRadarLeft.setImageDrawable(
+                                ContextCompat.getDrawable(
+                                    requireContext(),
+                                    R.drawable.bg_radar_left_alert
+                                )
+                            )
+                             ivBgBottomRadarRight.visibility = View.VISIBLE
+                             ivBgBottomRadarLeft.visibility = View.VISIBLE
+                        }
+                        else{
+                            ivBgBottomRadarRight.visibility = View.INVISIBLE
+                            ivBgBottomRadarLeft.visibility = View.INVISIBLE
+                        }
+                    }
+                }
+
                 launch {
                     carViewModel.ballisticPlus.collect { isSurgeMode ->
                         //ivBallisticPlus.visibility = if (isSurgeMode && viewModel.isBallistic) View.VISIBLE else View.INVISIBLE
@@ -400,33 +394,188 @@ class DashboardFragment : Fragment() {
                         d("DashboardFragment", "surgeMode:$isSurgeMode")
                     }
                 }
+                launch {
+                    carViewModel.motorArmDisarmTellTale.collect { motorArmDisarmTellTale ->
+                        d("DashboardFragment", "motorArmDisarmTellTale: $motorArmDisarmTellTale")
+                         isMotorArmed=motorArmDisarmTellTale==1
+                        viewModel.setMotorArmed(isMotorArmed)
+                        if (isMotorArmed) {
+                            if (speed == 0) {
+                                ivMtrArmed.visibility = View.VISIBLE
+                            } else {
+                                ivMtrArmed.visibility = View.INVISIBLE
+                            }
+
+                            val typedValue = TypedValue()
+                            requireContext().theme.resolveAttribute(
+                                R.attr.appTextColor,
+                                typedValue,
+                                true
+                            )
+                            if (tvSpeed.text == "---") tvSpeed.text = "000"
+                            tvSpeed.setTextColor(typedValue.data)
+                        } else {
+                            ivMtrArmed.visibility = View.INVISIBLE
+                            tvSpeed.setTextColor(
+                                ContextCompat.getColor(
+                                    requireContext(),
+                                    R.color.lightGreyMedium
+                                )
+                            )
+                            if (speed == 0) {
+                                tvSpeed.text = "---"
+                            }
+                        }
+
+                    }
+                }
+                launch {
+                    carViewModel.tellTales.collect {
+                        val hoverMode = it.modeHover == 1
+                        d("DashboardFragment", "hoverMode:$hoverMode")
+                        d("L_telltales_speed", "speed telltales:${it.vehicleSpeed}")
+                        d("DashboardFragment", "armed:$it.motorArmed")
+                        isMotorArmed = it.motorArmed == 1
+                        if (isMotorArmed) {
+                            if (speed == 0) {
+                                ivMtrArmed.visibility = View.VISIBLE
+                            } else {
+                                ivMtrArmed.visibility = View.INVISIBLE
+                            }
+
+                            val typedValue = TypedValue()
+                            requireContext().theme.resolveAttribute(
+                                R.attr.appTextColor,
+                                typedValue,
+                                true
+                            )
+                            if (tvSpeed.text == "---") tvSpeed.text = "000"
+                            tvSpeed.setTextColor(typedValue.data)
+                        } else {
+                            ivMtrArmed.visibility = View.INVISIBLE
+                            tvSpeed.setTextColor(
+                                ContextCompat.getColor(
+                                    requireContext(),
+                                    R.color.lightGreyMedium
+                                )
+                            )
+                            if (it.vehicleSpeed == 0) {
+                                tvSpeed.text = "---"
+                            }
+                        }
+                        viewModel.setMotorArmed(isMotorArmed)
+                        val rideModes = it.rideMode
+                        val isBallistic = it.rideMode == 3
+                        ivBallisticPlus.visibility = if (viewModel.isSurgeMode && isBallistic) View.VISIBLE else View.INVISIBLE
+                        d("DashboardFragment", "isBallisticPlus: ${viewModel.isSurgeMode && isBallistic}")
+                        updateThemeMode(rideModes)
+                        val regenValue = it.regenLevel.applyMinMax(RangeLimit(0, 9))
+                        viewModel.setRegenValue(regenValue)
+                        d("DashboardFragment", "regenValue:$regenValue")
+                        regenUnAvailable = if (it.regenUnavailable==1) {
+                            true
+                        } else{
+                            false
+                        }
+                        viewModel.setRegenUnAvailable(regenUnAvailable)
+                        if (regenUnAvailable)
+                        {
+                            viewModel.setRegenValue(0)
+                        }else{
+                            viewModel.setRegenValue(regenValue)
+                         }
+                    }
+                }
+               launch {
+                    viewModel.uiState.collect { uiState ->
+                        updateUi(uiState)
+                    }
+                }
             }
         }
     }
+    fun getStep(is10Levels: Boolean) = if (is10Levels) 1 else 3
 
+    fun normalize(value: Int, is10Levels: Boolean): Int {
+        return if (is10Levels) value else (value / 3) * 3
+    }
     private fun handleButtonNavigation(button: Int) {
+
+	val currentTime = System.currentTimeMillis()
+
+        // 1. Check for Timeout: If too much time passed, reset the sequence progress
+        if (currentTime - lastClickTime > SEQUENCE_TIMEOUT) {
+            sequenceStep = 0
+        }
+
+        // 2. Sequence Logic
+        if (button == debugSequence[sequenceStep]) {
+            lastClickTime = currentTime
+            sequenceStep++
+
+            if (sequenceStep == debugSequence.size) {
+                sequenceStep = 0
+                findNavController().navigate(R.id.debugFragment)
+                return
+            }
+
+            // While correctly entering the sequence, we block normal button behavior
+            return
+        } else {
+            // Button didn't match the sequence: Reset sequence and continue to normal behavior
+            // Check if this "wrong" button is actually the start of a new sequence attempt
+            sequenceStep = if (button == debugSequence[0]) {
+                lastClickTime = currentTime
+                1
+            } else {
+                0
+            }
+
+            // If we reset to 0, we do NOT return, so the 'when' block below executes
+            if (sequenceStep == 0) {
+                // Fall through to normal behavior
+            } else {
+                // It was the start of a new sequence, block normal behavior
+                return
+            }
+        }
+
         when (button) {
             ButtonNavigation.Top.ordinal -> {
                 if (speed > 0) return
                 //findNavController().navigate(R.id.action_dashboardFragment_to_controlSectionFragment)
             }
 
+
             ButtonNavigation.Left.ordinal -> {
-                val regenValue = (sharedViewModel.regenValue - 1).coerceAtLeast(0)
+                val step = getStep(viewModel.is10Levels)
+
+                var current = sharedViewModel.regenValue
+                current = normalize(current, viewModel.is10Levels)
+
+                val regenValue = (current - step).coerceAtLeast(0)
+
                 sharedViewModel.saveRegenValue(regenValue)
-                val dataVal: Byte = regenValue.toByte()
-                val packet = byteArrayOf(dataVal)
-                d("REGEN_VALUE","Regen value cluster to VCU :$packet")
+
+                val packet = byteArrayOf(regenValue.toByte())
+                d("REGEN_VALUE", "LEFT -> $packet")
 
                 carViewModel.sendByteArrayProperty(0x2170039F, packet)
-
             }
 
             ButtonNavigation.Right.ordinal -> {
-                val regenValue = (sharedViewModel.regenValue + 1).coerceAtMost(9)
+                val step = getStep(viewModel.is10Levels)
+
+                var current = sharedViewModel.regenValue
+                current = normalize(current, viewModel.is10Levels)
+
+                val regenValue = (current + step).coerceAtMost(9)
+
                 sharedViewModel.saveRegenValue(regenValue)
-                val dataVal: Byte = regenValue.toByte()
-                val packet = byteArrayOf(dataVal)
+
+                val packet = byteArrayOf(regenValue.toByte())
+                d("REGEN_VALUE", "RIGHT -> $packet")
+
                 carViewModel.sendByteArrayProperty(0x2170039F, packet)
             }
 
@@ -435,7 +584,6 @@ class DashboardFragment : Fragment() {
                 findNavController().navigate(R.id.action_dashboardFragment_to_menuFragment)
             }
 
-            ButtonNavigation.Enter.ordinal -> findNavController().navigate(R.id.debugFragment)
         }
     }
 
@@ -448,14 +596,39 @@ class DashboardFragment : Fragment() {
         viewModel.setThemeMode(themeMode)
     }
 
+    private fun updatePowerColor(themeMode: Int) {
+        val color = if (isNegativePower) {
+            getColorAttr(R.attr.appTextColor, themeMode)
+        } else {
+            getColorAttr(R.attr.modeColor, themeMode)
+        }
+
+        pbPowerTopLeft.setModeColor(color)
+        pbPowerTopRight.setModeColor(color)
+        pbPowerBottomLeft.setModeColor(color)
+        pbPowerBottomRight.setModeColor(color)
+    }
 
     private fun updateVehicleValue(value: FloatArray = floatArrayOf()) {
         d("update speed", "speed")
         tvSpeedUnit.text = if (unit == "miles") "mph" else "km/h"
         tvPowerLabel.text = if (unit == "miles") "Wh/mile" else "Wh/km"
         d("VehicleValue", "value:$value")
+	d("VehicleValue", "speed:$value[0]")
         if (value.isEmpty()) return
 
+        val rawPower = value.getOrNull(1) ?: 0f
+        val scaledPower = rawPower / 1000f
+        val currentTheme = viewModel.uiState.value.themeMode
+        isNegativePower = scaledPower < 0
+        val powerMagnitude = abs(scaledPower)
+        val powerLevel = (powerMagnitude / 10f).coerceIn(0f, 1f)
+        pbPowerBottomLeft.progress = powerLevel
+        pbPowerBottomRight.progress = powerLevel
+        pbPowerTopLeft.progress = powerLevel
+        pbPowerTopRight.progress = powerLevel
+
+        updatePowerColor(currentTheme)
         val rawSpeedKm = value.getOrNull(0)?.toInt()
         val finalSpeedKm =
             rawSpeedKm?.applyMinMax(sharedViewModel.speedLimit) ?: 0
@@ -466,7 +639,18 @@ class DashboardFragment : Fragment() {
                 (finalSpeedKm * 0.621371).roundToInt()
             else
                 finalSpeedKm
-        tvSpeed.text = String.format("%03d", displaySpeed)
+        if(!isMotorArmed && speed==0 )
+            tvSpeed.text = "---"
+        else
+            tvSpeed.text = String.format("%03d", displaySpeed)
+        if (isMotorArmed && speed==0)
+        {
+            ivMtrArmed.visibility = View.VISIBLE
+        }
+        else{
+            ivMtrArmed.visibility = View.INVISIBLE
+        }
+
 
         val power = value.getOrNull(1) ?: 0f
         val progress = minOf(1.0f, abs(power) / 10f)
@@ -643,6 +827,20 @@ class DashboardFragment : Fragment() {
                 tvRideValue.text = finalRide.toString()
             }
         }
+	if (vcuInfoMsg.speed.isNotEmpty()) {
+		if (vcuInfoMsg.speed[0].toInt() == 0)
+        	{
+	    		speed = 0
+	    		if (isMotorArmed)
+	    	{
+			tvSpeed.text = "000"
+            	}
+            	else
+            	{
+                	tvSpeed.text = "---"
+            	}
+		}
+	}
     }
 
 
@@ -698,15 +896,19 @@ class DashboardFragment : Fragment() {
         tvOdoLabel.setTextColor(modeColor)
         tvRideLabel.setTextColor(modeColor)
         tvRangeLabel.setTextColor(modeColor)
-        pbPowerTopLeft.setModeColor(modeColor)
+      /*  pbPowerTopLeft.setModeColor(modeColor)
         pbPowerTopRight.setModeColor(modeColor)
         pbPowerBottomLeft.setModeColor(modeColor)
-        pbPowerBottomRight.setModeColor(modeColor)
+        pbPowerBottomRight.setModeColor(modeColor)*/
+/*
 
         pbPowerTopLeft.progress = uiState.power
         pbPowerTopRight.progress = uiState.power
         pbPowerBottomLeft.progress = uiState.power
         pbPowerBottomRight.progress = uiState.power
+
+*/
+        updatePowerColor(uiState.themeMode)
 
 
         /* val efficiencyDrawable = if (uiState.isMotorArmed) {
@@ -778,81 +980,107 @@ class DashboardFragment : Fragment() {
         } else Color.BLACK
     }
 
+    @SuppressLint("ResourceAsColor")
     fun updateRegenLevel(uiState: UiState, modeColor: Int) {
-        tvRegenValue.text = buildString {
-            append("R")
-            append(uiState.regenValue)
-        }
-        val wrapper = ContextThemeWrapper(
-            requireContext(),
-            uiState.themeMode
-        )
-        if (viewModel.is10Levels) {
-            val regenDrawable = if (uiState.isMotorArmed) {
-                AppCompatResources.getDrawable(
-                    ContextThemeWrapper(
-                        requireContext(),
-                        uiState.themeMode
-                    ), R.drawable.regen_level_list
-                )?.mutate()
-            } else {
-                AppCompatResources.getDrawable(
+        if (regenUnAvailable){
+            viewModel.setRegenValue(0)
+            if (viewModel.is10Levels){
+              val regenDrawable= AppCompatResources.getDrawable(
                     ContextThemeWrapper(
                         requireContext(),
                         R.style.Theme_MotorArmed
                     ), R.drawable.regen_level_list
                 )?.mutate()
-            }
+              if (regenDrawable is LevelListDrawable) {
+                    regenDrawable.level = 0
+                }
+                ivRegenLevel10.setImageDrawable(regenDrawable)
+            }else{
 
-            if (regenDrawable is LevelListDrawable) {
-                regenDrawable.level = uiState.regenValue
+                ivRegen4Level1.setImageResource(R.drawable.ic_regen_4)
+                ivRegen4Level2.setImageResource(R.drawable.ic_regen_4)
+                ivRegen4Level3.setImageResource(R.drawable.ic_regen_4)
+
             }
-            ivRegenLevel10.setImageDrawable(regenDrawable)
-        } else {
-            val regenLevel4 = getRegenValueForLevel4(uiState.regenValue)
-            val defaultIcon1 =
-                AppCompatResources.getDrawable(wrapper, R.drawable.ic_regen_4)?.mutate()
-            val defaultIcon2 =
-                AppCompatResources.getDrawable(wrapper, R.drawable.ic_regen_4)?.mutate()
-            val defaultIcon3 =
-                AppCompatResources.getDrawable(wrapper, R.drawable.ic_regen_4)?.mutate()
-            ivRegen4Level1.setImageDrawable(defaultIcon1)
-            ivRegen4Level2.setImageDrawable(defaultIcon2)
-            ivRegen4Level3.setImageDrawable(defaultIcon3)
-            when (regenLevel4) {
-                3 -> {
-                    if (uiState.isMotorArmed) {
-                        ivRegen4Level1.setImageDrawable(getTintedRegenIcon(wrapper, modeColor))
-                    } else {
-                        ivRegen4Level1.setImageDrawable(
-                            getGreyRegenIcon(requireContext())
-                        )
-                    }
+            tvRegenValue.text="R0"
+
+        }else {
+
+            tvRegenValue.text = buildString {
+                append("R")
+                append(uiState.regenValue)
+            }
+            val wrapper = ContextThemeWrapper(
+                requireContext(),
+                uiState.themeMode
+            )
+            if (viewModel.is10Levels) {
+                val regenDrawable = if (uiState.isMotorArmed) {
+                    AppCompatResources.getDrawable(
+                        ContextThemeWrapper(
+                            requireContext(),
+                            uiState.themeMode
+                        ), R.drawable.regen_level_list
+                    )?.mutate()
+                } else {
+                    AppCompatResources.getDrawable(
+                        ContextThemeWrapper(
+                            requireContext(),
+                            R.style.Theme_MotorArmed
+                        ), R.drawable.regen_level_list
+                    )?.mutate()
                 }
 
-                6 -> {
-                    if (uiState.isMotorArmed) {
-                        val tinted = getTintedRegenIcon(wrapper, modeColor)
-                        ivRegen4Level1.setImageDrawable(tinted)
-                        ivRegen4Level2.setImageDrawable(tinted)
-                    } else {
-                        val grey = getGreyRegenIcon(requireContext())
-                        ivRegen4Level1.setImageDrawable(grey)
-                        ivRegen4Level2.setImageDrawable(grey)
-                    }
+                if (regenDrawable is LevelListDrawable) {
+                    regenDrawable.level = uiState.regenValue
                 }
+                ivRegenLevel10.setImageDrawable(regenDrawable)
+            } else {
+                val regenLevel4 = getRegenValueForLevel4(uiState.regenValue)
+                val defaultIcon1 =
+                    AppCompatResources.getDrawable(wrapper, R.drawable.ic_regen_4)?.mutate()
+                val defaultIcon2 =
+                    AppCompatResources.getDrawable(wrapper, R.drawable.ic_regen_4)?.mutate()
+                val defaultIcon3 =
+                    AppCompatResources.getDrawable(wrapper, R.drawable.ic_regen_4)?.mutate()
+                ivRegen4Level1.setImageDrawable(defaultIcon1)
+                ivRegen4Level2.setImageDrawable(defaultIcon2)
+                ivRegen4Level3.setImageDrawable(defaultIcon3)
+                when (regenLevel4) {
+                    3 -> {
+                        if (uiState.isMotorArmed) {
+                            ivRegen4Level1.setImageDrawable(getTintedRegenIcon(wrapper, modeColor))
+                        } else {
+                            ivRegen4Level1.setImageDrawable(
+                                getGreyRegenIcon(requireContext())
+                            )
+                        }
+                    }
 
-                9 -> {
-                    if (uiState.isMotorArmed) {
-                        val tinted = getTintedRegenIcon(wrapper, modeColor)
-                        ivRegen4Level1.setImageDrawable(tinted)
-                        ivRegen4Level2.setImageDrawable(tinted)
-                        ivRegen4Level3.setImageDrawable(tinted)
-                    } else {
-                        val grey = getGreyRegenIcon(requireContext())
-                        ivRegen4Level1.setImageDrawable(grey)
-                        ivRegen4Level2.setImageDrawable(grey)
-                        ivRegen4Level3.setImageDrawable(grey)
+                    6 -> {
+                        if (uiState.isMotorArmed) {
+                            val tinted = getTintedRegenIcon(wrapper, modeColor)
+                            ivRegen4Level1.setImageDrawable(tinted)
+                            ivRegen4Level2.setImageDrawable(tinted)
+                        } else {
+                            val grey = getGreyRegenIcon(requireContext())
+                            ivRegen4Level1.setImageDrawable(grey)
+                            ivRegen4Level2.setImageDrawable(grey)
+                        }
+                    }
+
+                    9 -> {
+                        if (uiState.isMotorArmed) {
+                            val tinted = getTintedRegenIcon(wrapper, modeColor)
+                            ivRegen4Level1.setImageDrawable(tinted)
+                            ivRegen4Level2.setImageDrawable(tinted)
+                            ivRegen4Level3.setImageDrawable(tinted)
+                        } else {
+                            val grey = getGreyRegenIcon(requireContext())
+                            ivRegen4Level1.setImageDrawable(grey)
+                            ivRegen4Level2.setImageDrawable(grey)
+                            ivRegen4Level3.setImageDrawable(grey)
+                        }
                     }
                 }
             }
@@ -886,16 +1114,35 @@ class DashboardFragment : Fragment() {
         ivEfficiency.setImageDrawable(regenDrawable)
     }
 
-    fun getGreyRegenIcon(context: Context): Drawable? {
+   /* fun getGreyRegenIcon(context: Context): Drawable? {
         return AppCompatResources
             .getDrawable(context, R.drawable.ic_regen_4)
             ?.mutate()
             ?.apply {
                 setTint(
-                    ContextCompat.getColor(context, android.R.color.darker_gray)
+                    ContextCompat.getColor(context, R.color.levelGreyLight)
                 )
             }
+    }*/
+
+
+   fun getGreyRegenIcon(context: Context): Drawable? {
+    val typedValue = TypedValue()
+    context.theme.resolveAttribute(R.attr.regen4level, typedValue, true)
+
+    val color = if (typedValue.resourceId != 0) {
+        ContextCompat.getColor(context, typedValue.resourceId)
+    } else {
+        typedValue.data
     }
+
+    return AppCompatResources
+        .getDrawable(context, R.drawable.ic_regen_4)
+        ?.mutate()
+        ?.apply {
+            setTint(color)
+        }
+}
 
 
     private fun getTintedRegenIcon(wrapper: ContextThemeWrapper, color: Int) =
@@ -936,6 +1183,8 @@ class DashboardFragment : Fragment() {
     }
 
 }
+
+
 
 
 

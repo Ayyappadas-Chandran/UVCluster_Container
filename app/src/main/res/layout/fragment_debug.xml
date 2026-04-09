@@ -83,10 +83,10 @@
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="530dp"
+        android:layout_height="wrap_content"
         android:weightSum="9"
         android:id="@+id/debugValues"
-        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintBottom_toTopOf="@+id/bottomLayout"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/linearLayout"
@@ -301,8 +301,26 @@
             tools:listitem="@layout/item_fault" />
 
     </LinearLayout>
+	 <LinearLayout
+        android:id="@+id/bottomLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/debugValues">
+
+        <Button
+            android:id="@+id/nextPageBtn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Next Page" />
+
+    </LinearLayout>
     <!--
         </androidx.core.widget.NestedScrollView>
     -->
 
 </androidx.constraintlayout.widget.ConstraintLayout>
+

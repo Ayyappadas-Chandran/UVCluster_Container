@@ -13,7 +13,8 @@ data class UiState(
     val power: Float = 0.0f,
     val themeMode: Int,
     val isMotorArmed: Boolean,
-    val isBallisticPlus: Boolean
+    val isBallisticPlus: Boolean,
+    val isRegenUnAvailable:Boolean
 )
 
 class DashboardViewModel(private val preferenceManager: PreferenceManager) : ViewModel() {
@@ -23,7 +24,8 @@ class DashboardViewModel(private val preferenceManager: PreferenceManager) : Vie
             themeMode = preferenceManager.themeMode,
             regenType = preferenceManager.is10Levels,
             isMotorArmed = false,
-            isBallisticPlus = preferenceManager.isBallisticPlus
+            isBallisticPlus = preferenceManager.isBallisticPlus,
+            isRegenUnAvailable=false
         )
     )
     val uiState = _uiState.asStateFlow()
@@ -48,6 +50,9 @@ class DashboardViewModel(private val preferenceManager: PreferenceManager) : Vie
     fun setMotorArmed(armed: Boolean) {
         _uiState.update { it.copy(isMotorArmed = armed) }
     }
+    fun setRegenUnAvailable(isRegenUnAvailable: Boolean) {
+        _uiState.update { it.copy(isRegenUnAvailable = isRegenUnAvailable) }
+    }
 
     fun setRegenType(is10Level: Boolean) {
         preferenceManager.saveRegenType(is10Levels)
@@ -60,13 +65,14 @@ class DashboardViewModel(private val preferenceManager: PreferenceManager) : Vie
         get() = preferenceManager.isBallisticPlus
 
     fun ballisticPlus(isBallisticPlus: Boolean) {
-        preferenceManager.saveBallisticPlus(isBallisticPlus)
+         preferenceManager.saveBallisticPlus(isBallisticPlus)
         _uiState.update { it.copy(isBallisticPlus = isBallisticPlus) }
     }
     fun setPowerValue(power: Float) {
         _uiState.update { it.copy(power = power) }
     }
 }
+
 
 
 

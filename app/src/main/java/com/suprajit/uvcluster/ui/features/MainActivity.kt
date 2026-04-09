@@ -104,9 +104,13 @@ import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.Date
 import java.util.Locale
+import com.suprajit.uvcluster.ui.features.settings.wifi.WifiAutoConnector
+import java.time.ZoneId
 
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity() { 
+
+    private lateinit var wifiAutoConnector: WifiAutoConnector
     private var lastLux = -1f
     private var filteredLux = -1f
     private val luxThreshold = 5f
@@ -157,6 +161,11 @@ class MainActivity : AppCompatActivity() {
     private var leftIndicatorBlinkJob: Job? = null
     private var rightIndicatorBlinkJob: Job? = null
     private var tractionBlinkJob: Job? = null
+    //HeartBeat Implementation
+    private var heartbeatJob: Job? = null
+    private var heartbeatCounter: Long = 0L
+    @Volatile private var isHeartbeatEnabled: Boolean = true
+    private val MSG_ID_USB_HEARTBEAT_IMX_S32 = 0x2170030F
     private val bluetoothViewModel by viewModels<BluetoothViewModel> { ViewModelFactory(context = this) }
     private val wifiViewModel by viewModels<WifiViewModel> { ViewModelFactory(context = this) }
     private val dataViewModel by viewModels<DataViewModel> { ViewModelFactory(context = this) }
@@ -175,6 +184,8 @@ class MainActivity : AppCompatActivity() {
     private var indicatorRaw = IndicatorMode.Off
     private var currentMode = IndicatorMode.Off
     private var isDashboard = false
+    private var alsJob: Job? = null
+    private var isClusterReady=false
 
     /**
      * Register the permissions callback, which handles the user's response to the system permissions dialog.
@@ -200,14 +211,14 @@ class MainActivity : AppCompatActivity() {
 
             val lux = event.values[0]
 
-            // Smooth the sensor values (low-pass filter)
+            // Smooth
             if (filteredLux < 0) {
                 filteredLux = lux
             } else {
                 filteredLux = filteredLux * 0.8f + lux * 0.2f
             }
 
-            // Ignore small lux fluctuations
+            // Ignore small fluctuations (UI optimization only)
             if (kotlin.math.abs(filteredLux - lastLux) < luxThreshold) return
 
             lastLux = filteredLux
@@ -215,44 +226,20 @@ class MainActivity : AppCompatActivity() {
             if (!viewModel.isAutoBrightnessEnabled) return
 
             val brightnessLevel = getBrightnessLevelFromLux(filteredLux)
-
             val brightnessPercentage = (brightnessLevel * 100).toInt()
 
             d("ALS", "Lux: $filteredLux  Brightness: $brightnessPercentage")
 
-             val now = System.currentTimeMillis()
-
-            if (now - lastAlsSentTime >= 2000) {
-
-                val dayNight = if (brightnessPercentage > 50) 1 else 2
-
-                val payload = buildAlsPayload(filteredLux, dayNight)
-
-                sendByteArray(
-                    Utilities.PROP_ID_ALS_INFO,
-                    payload
-                )
-
-                d("ALS_VCU", "Sent lux=${filteredLux.toInt()} dayNight=$dayNight")
-
-                lastAlsSentTime = now
-            }
-
             viewModel.saveBrightness(brightnessPercentage)
-
             checkSettingAndBrightness(brightnessPercentage)
 
             if (viewModel.mode == getString(R.string.auto)) {
-
                 if (brightnessPercentage > 50) {
-
                     if (AppCompatDelegate.getDefaultNightMode() != AppCompatDelegate.MODE_NIGHT_NO) {
                         d("ALS", "Switching to DAY mode")
                         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
                     }
-
                 } else {
-
                     if (AppCompatDelegate.getDefaultNightMode() != AppCompatDelegate.MODE_NIGHT_YES) {
                         d("ALS", "Switching to NIGHT mode")
                         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
@@ -261,8 +248,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
-        }
+        override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
     }
 
 
@@ -271,9 +257,14 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
         hideSystemBars()
         viewModel.saveCustomModeAbs(false)
-        viewModel.saveBallisticPlus(false)
+        //viewModel.saveBallisticPlus(false)
 
 
+	initViews()
+        requestPermission()
+        hideSystemUI()
+        initNavController()
+        initClickListener()
 
         if (viewModel.isOtaComplete) {
             d("OTAUpdate", "File deleted")
@@ -288,7 +279,7 @@ class MainActivity : AppCompatActivity() {
 
         val filter = IntentFilter().apply {
             addAction(FotaReceiver.ACTION_FOTA_EVENT)
-            addAction(FotaReceiver.ACTION_UDP_TIMEOUT)
+//            addAction(FotaReceiver.ACTION_UDP_TIMEOUT)
         }
 
         registerReceiver(fotaReceiver, filter, RECEIVER_EXPORTED)
@@ -303,26 +294,29 @@ class MainActivity : AppCompatActivity() {
                     )
                 }
 
-                FotaReceiver.ACTION_UDP_TIMEOUT -> {
+                /*FotaReceiver.ACTION_UDP_TIMEOUT -> {
                     alertManager.show(
                         titleText = "VCU UDP Disconnect",
                         messageText = "VCU Disconnection occured"
                     )
-                }
+                }*/
             }
         }
 
         val imei = getSystemProperty("persist.sys.bike.imei", "000000000000000")
         d("IMEI", imei)
-//        ClusterNotification.reset()
-        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        initViews()
-        requestPermission()
+        //ClusterNotification.reset()
+	window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        //initViews()
+        //requestPermission()
         hideSystemUI()
-        initNavController()
-        initClickListener()
+        //initNavController()
+        //initClickListener()
         bluetoothViewModel.bluetoothStateChange()
         wifiViewModel.wifiStateChange()
+        wifiAutoConnector = WifiAutoConnector(this)
+        wifiAutoConnector.startAutoConnectLoop()
+
         dataViewModel.stateChange()
         val metrics = resources.displayMetrics
         val width = metrics.widthPixels
@@ -330,15 +324,16 @@ class MainActivity : AppCompatActivity() {
         d("ScreenInfo", "Resolution: ${width}x${height}")
         //showTellTales()
         initObserver()
-        NotificationManager.init(applicationContext, carViewModel, viewModel)
+        //NotificationManager.init(this, lifecycleOwner = this, carViewModel, viewModel)
+	NotificationManager.init(applicationContext, carViewModel, viewModel)
     }
 
     override fun onStart() {
         super.onStart()
-        d("MainActivityLifeCycle", "onStart is called")
         bluetoothViewModel.registerBluetoothActionReceiver()
         wifiViewModel.registerWifiStateChangeReceiver()
         dataViewModel.registerReceiver()
+	dataViewModel.getNetworkSignalLevel()
     }
 
     /**
@@ -365,7 +360,8 @@ class MainActivity : AppCompatActivity() {
                 )
             )
             ivLeftWarning1.setImageDrawable(getDrawable(this, R.drawable.ic_cruse_control))
-            ivNetwork.setImageDrawable(getDrawable(this, R.drawable.ic_toolbar_network))
+           // ivNetwork.setImageDrawable(getDrawable(this, R.drawable.ic_toolbar_network))
+	    ivNetwork.setColorFilter(ContextCompat.getColor(this, textColor))
             val currentResMtc = ivTraction.tag as? Int
 
             when (currentResMtc) {
@@ -405,11 +401,12 @@ class MainActivity : AppCompatActivity() {
                     this, R.drawable.ic_bluetooth_toolbar
                 )
             )
-            ivNetwork.setImageDrawable(
-                getDrawable(
-                    this, R.drawable.ic_network_toolbar
-                )
-            )
+	    ivNetwork.setColorFilter(ContextCompat.getColor(this, textColor))
+            //ivNetwork.setImageDrawable(
+               // getDrawable(
+               //     this, R.drawable.ic_network_toolbar
+             //   )
+           // )
 
             ivLeftWarning1.setImageDrawable(getDrawable(this, R.drawable.ic_curse_control_white))
             val currentResMtc = ivTraction.tag as? Int
@@ -535,6 +532,44 @@ class MainActivity : AppCompatActivity() {
                         ivWifi.setImageResource(iconRes)
                     }
                 }
+		launch {
+                    dataViewModel.currentNetworkSignalLevel.collect { level ->
+			d("LTESignal","init obser : $level")
+                        val iconRes = when (level) {
+                            0 -> R.drawable.signal_cellular_0_bar
+                            1 -> R.drawable.signal_cellular_1_bar
+                            2 -> R.drawable.signal_cellular_2_bar
+                            3 -> R.drawable.signal_cellular_3_bar
+                            4 -> R.drawable.signal_cellular_4_bar
+                            else -> R.drawable.signal_cellular_0_bar
+                        }
+
+                        ivNetwork.setImageResource(iconRes)
+                    }
+                }
+
+                 launch {
+                    carViewModel.chargerEvt.collect { evt ->
+
+                        d("ChargingEvent", "chargerEvt: $evt")
+
+                        when (evt) {
+
+                            192 -> {   // CHARGER_REMOVED
+                                if (navController?.currentDestination?.id == R.id.chargingFragment) {
+                                    navController?.navigate(R.id.dashboardFragment)
+                                }
+                            }
+
+                            193, 194, 195, 196 -> {  // charging states
+                                if (navController?.currentDestination?.id != R.id.chargingFragment) {
+                                    navController?.navigate(R.id.chargingFragment)
+                                }
+                            }
+                        }
+                    }
+                }
+
                 launch {
                     bluetoothViewModel.onBluetoothStateChange.collect { state ->
                         d("BluetoothState", "bluetoothState: $state")
@@ -550,12 +585,12 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
 
-                launch {
-                    dataViewModel.onDataStateChange.collect { (state) ->
-                        d("DataState", "MainActivity DataState: $state")
-                        ivNetwork.visibility = if (state) View.VISIBLE else View.INVISIBLE
-                    }
-                }
+               // launch {
+                 //   dataViewModel.onDataStateChange.collect { (state) ->
+                   //     d("DataState", "MainActivity DataState: $state")
+                     //   ivNetwork.visibility = if (state) View.VISIBLE else View.INVISIBLE
+                   // }
+               // }
 
                 launch {
                     carViewModel.absMode.collect { value ->
@@ -625,6 +660,35 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
 
+		launch {
+                    carViewModel.highBeamTellTale.collect { highBeamTellTale ->
+                        d("Faizuuuuu", "highBeamTellTale: $highBeamTellTale")
+                        onhighBeamTellTaleUpdate(highBeamTellTale)
+                    }
+                }
+
+		launch {
+                    carViewModel.hazardLightTellTale.collect { hazardLightTellTale ->
+                        d("Faizuuuuu", "hazardLightTellTale: $hazardLightTellTale")
+                        onhazardLightTellTaleUpdate(hazardLightTellTale)
+                    }
+                }
+
+                launch {
+                    carViewModel.motorArmDisarmTellTale.collect { motorArmDisarmTellTale ->
+                        d("Faizuuuuu", "motorArmDisarmTellTale: $motorArmDisarmTellTale")
+                        onmotorArmDisarmTellTaleUpdate(motorArmDisarmTellTale)
+                    }
+                }
+
+		launch {
+                    carViewModel.heartBeatstatus.collect { heartBeatstatus ->
+                        d("Faizuuuuu", "heartBeatstatus: $heartBeatstatus")
+                        if (!isClusterReady) return@collect
+                        handleHeartbeatControlFromVcu(heartBeatstatus)
+                    }
+                }
+
                 launch {
                     carViewModel.lockdown.collect { value ->
                         d("Faizuuuuu", "lockdown: $value")
@@ -647,12 +711,6 @@ class MainActivity : AppCompatActivity() {
                 launch {
                     carViewModel.mcNoArm.collect { value ->
                         d("Faizuuuuu", "mcNoArm: ${value.joinToString()}")
-                    }
-                }
-                launch {
-                    carViewModel.tellTales.collect { tellTales ->
-                        d("Faizu", "TellTales: $tellTales")
-                        handleTellTales(tellTales)
                     }
                 }
                 launch {
@@ -689,7 +747,8 @@ class MainActivity : AppCompatActivity() {
                                 navController?.currentDestination?.id != R.id.versionsFragment &&
                                 navController?.currentDestination?.id != R.id.hoverModeFragment &&
                                 navController?.currentDestination?.id != R.id.chargingFragment &&
-                                navController?.currentDestination?.id != R.id.thermalRunawayFragment
+                                navController?.currentDestination?.id != R.id.thermalRunawayFragment &&
+				navController?.currentDestination?.id != R.id.mapFragment
                             ) {
                                 navController?.navigate(R.id.dashboardFragment)
                             }
@@ -707,13 +766,17 @@ class MainActivity : AppCompatActivity() {
                             }
                         }
                 }
-/*
+
                 launch {
-                    viewModel.radarOn.collect { state ->
-                        d("RADARRRR", "State:$state")
-                        ivLeftWarning3.isVisible = state
+                    viewModel.isHillHold.collect { state ->
+                        d("isHillHold", "State:$state")
+                        if (state){
+                            ivHillHold.visibility = View.VISIBLE
+                        }else{
+                            ivHillHold.visibility = View.INVISIBLE
+                        }
                     }
-                }*/
+                }
                 launch {
                     carViewModel.ccOff.collect { value ->
                         d("Cruise", "cc off: $value")
@@ -751,35 +814,10 @@ class MainActivity : AppCompatActivity() {
 
                     }
                 }
-
                 launch {
-                    carViewModel.thermalRunwayH.collect { value ->
-                        d("ThermalRunway", "thermalRunwayH: $value")
-                        if (value) {
-                            navController?.navigate(R.id.thermalRunawayFragment)
-                        }
-                    }
-                }
-                launch {
-                    carViewModel.thermalRunwayT.collect { value ->
-                        d("ThermalRunway", "thermalRunwayT: $value")
-                        if (value) {
-                            navController?.navigate(R.id.thermalRunawayFragment)
-                        }
-                    }
-                }
-                launch {
-                    carViewModel.thermalRunwayV.collect { value ->
-                        d("ThermalRunway", "thermalRunwayT: $value")
-                        if (value) {
-                            navController?.navigate(R.id.thermalRunawayFragment)
-                        }
-                    }
-                }
-
-                launch {
-                    carViewModel.radarTellTaleState.collect { radarTelltalesState ->
-                        handleRadarTelltales(radarTelltalesState)
+                    carViewModel.tellTales.collect { tellTales ->
+                        d("Faizu", "TellTales: $tellTales")
+                        handleTellTales(tellTales)
                     }
                 }
 
@@ -788,16 +826,10 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun handleRadarTelltales(radarTelltaleState: RadarTelltaleState) {
+    private fun handleRadarTelltales(radarTelltaleState: Int) {
         when (radarTelltaleState) {
-            RadarTelltaleState.Off -> ivLeftWarning3.visibility = View.INVISIBLE
-            RadarTelltaleState.Malfunction -> {
-                ivLeftWarning3.visibility = View.VISIBLE
-                ivLeftWarning3.setImageDrawable(getDrawable(this, R.drawable.ic_radar_malfunction))
-                ivLeftWarning3.tag = R.drawable.ic_radar_malfunction
-            }
-
-            RadarTelltaleState.On -> {
+            1 -> ivLeftWarning3.visibility = View.INVISIBLE
+            2-> {
                 ivLeftWarning3.visibility = View.VISIBLE
                 if(isDashboard){
                     ivLeftWarning3.setImageDrawable(getDrawable(this, R.drawable.ic_radar))
@@ -806,6 +838,11 @@ class MainActivity : AppCompatActivity() {
                     ivLeftWarning3.setImageDrawable(getDrawable(this,R.drawable.ic_radar_white))
                     ivLeftWarning3.tag = R.drawable.ic_radar_white
                 }
+            }
+            3 -> {
+                ivLeftWarning3.visibility = View.VISIBLE
+                ivLeftWarning3.setImageDrawable(getDrawable(this, R.drawable.ic_radar_malfunction))
+                ivLeftWarning3.tag = R.drawable.ic_radar_malfunction
             }
         }
     }
@@ -1038,32 +1075,131 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onResume() {
-        super.onResume()
-        wifiViewModel.startScan()
-        wifiViewModel.scanResult()
-        wifiViewModel.startSignalMonitoring()
-        //navHostFragment?.navController?.navigate(R.id.versionsFragment)
-        d("MainActivityLifeCycle", "onResume is called")
-        sendClusterReady()
-        // updateCurrentStates(this)
-        /* ivNetwork.visibility =
-             if (isMobileDataEnabled(this)) ivNetwork.visibility else View.INVISIBLE*/
+         super.onResume()
 
-        lightSensor?.let {
-            sensorManager.registerListener(
-                ambientSensorListener,
-                it,
-                SensorManager.SENSOR_DELAY_NORMAL
-            )
-        }
+    // Ensure WiFi ON
+            if (!wifiViewModel.isWifiEnabled()) {
+        wifiViewModel.enableWifi(true)
+    }
 
-        startToolbarClock() // rtc v1.4(rtc)
+   
+
+            
+           wifiViewModel.scanResult()
+           wifiViewModel.startSignalMonitoring()
+	   dataViewModel.getNetworkSignalLevel()
+
+          d("MainActivityLifeCycle", "onResume is called")
+
+    window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)//error fix_1.4(screen dimming error)
+
+    lightSensor?.let {
+        sensorManager.registerListener(
+            ambientSensorListener,
+            it,
+            SensorManager.SENSOR_DELAY_NORMAL
+         )
+      }
+      
+       sendClusterReady()
+
+       startToolbarClock()
     }
 
     override fun onPause() {
         super.onPause()
         d("MainActivityLifeCycle", "onPause is called")
-        timeHandler.removeCallbacks(timeRunnable)// rtc v1.4(rtc)
+        timeHandler.removeCallbacks(timeRunnable) // rtc v1.4(rtc)
+        sensorManager.unregisterListener(ambientSensorListener)
+        alsJob?.cancel()
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)//error fix_1.4(screen dimming error)
+    }
+    private fun startAlsJob(){
+        alsJob?.cancel()
+
+        alsJob = lifecycleScope.launch {
+            while (isActive) {
+                val brightnessLevel = getBrightnessLevelFromLux(filteredLux)
+                val brightnessPercentage = (brightnessLevel * 100).toInt()
+
+                //val dayNight = if (brightnessPercentage > 50) 1 else 2
+                val dayNight = if (
+                    LocalTime.now(ZoneId.of("Asia/Kolkata")).let {
+                        it.isAfter(LocalTime.of(6, 0)) && it.isBefore(LocalTime.of(18, 0))
+                    }
+                ) 1 else 2
+                val payload = buildAlsPayload(filteredLux, dayNight)
+
+                sendByteArray(Utilities.PROP_ID_ALS_INFO, payload)
+
+                d("ALS_VCU", "Periodic send lux=${filteredLux.toInt()}  Brightness= ${brightnessPercentage}%  DayNight=${dayNight}")
+
+                delay(2000)
+            }
+        }
+
+    }
+
+
+
+//    private fun startHeartbeat() {
+//        if (heartbeatJob?.isActive == true) {
+//            d(tag, "Heartbeat: already running, skipping restart")
+//            return
+//        }
+//
+//    heartbeatCounter = 0L
+//    isHeartbeatEnabled = true
+//
+//    heartbeatJob = lifecycleScope.launch(Dispatchers.IO) {
+//        d(tag, "Heartbeat: started")
+//        while (isActive) {
+//            if (isHeartbeatEnabled) {
+//                val payload = buildHeartbeatPayload()
+//                sendByteArray(MSG_ID_USB_HEARTBEAT_IMX_S32, payload)
+//                d(tag, "Heartbeat sent | counter=${heartbeatCounter - 1} epoch=${System.currentTimeMillis() / 1000}")
+//            } else {
+//                d(tag, "Heartbeat suppressed | enabled=$isHeartbeatEnabled")
+//            }
+//            delay(1000L)
+//        }
+//        d(tag, "Heartbeat: stopped")
+//    }
+//}
+
+    private fun stopHeartbeat() {
+        heartbeatJob?.cancel()
+        heartbeatJob = null
+        d(tag, "Heartbeat: job cancelled")
+    }   
+
+    private fun buildHeartbeatPayload(): ByteArray {
+        val counter = (heartbeatCounter and 0xFFFFFFFFL).toInt()
+        heartbeatCounter++
+
+        val unixEpochSeconds = System.currentTimeMillis() / 1000L
+
+        val buffer = java.nio.ByteBuffer.allocate(28)
+        buffer.order(java.nio.ByteOrder.LITTLE_ENDIAN)
+        buffer.putInt(counter)           // uint32_t counter  (4 bytes)
+        buffer.putLong(unixEpochSeconds) // uint64_t unix_epoch (8 bytes)
+        buffer.putLong(0L)               // uint64_t reserved0  (8 bytes)
+        buffer.putLong(0L)               // uint64_t reserved1  (8 bytes)
+        return buffer.array()
+    }
+
+    fun handleHeartbeatControlFromVcu(byte0: Int) {
+        when (byte0) {
+            1 -> {
+                isHeartbeatEnabled = true
+                d(tag, "Heartbeat: VCU ENABLED heartbeat")
+            }
+            2 -> {
+                isHeartbeatEnabled = false
+                d(tag, "Heartbeat: VCU DISABLED heartbeat")
+            }
+            else -> d(tag, "Heartbeat: unknown control byte 0x${byte0.toString(16)}")
+        }
     }
 
     private fun updateCurrentStates(context: Context) {
@@ -1212,15 +1348,19 @@ class MainActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         d("MainActivityLifeCycle", "onDestroy is called")
+	isClusterReady = false
         if (SHOULD_INCLUDE_CAR_SERVICE) carViewModel.disconnect()
         unregisterReceiver(fotaReceiver)
         hillHoldBlinkJob?.cancel()
         leftIndicatorBlinkJob?.cancel()
         rightIndicatorBlinkJob?.cancel()
         sensorManager.unregisterListener(ambientSensorListener)
+        wifiAutoConnector.stopAutoConnectLoop()
         bluetoothViewModel.unregisterBluetoothActionReceiver()
         wifiViewModel.unregisterWifiStateChangeReceiver()
         dataViewModel.unregisterReceiver()
+	dataViewModel.stopSignalUpdates()
+	//stopHeartbeat()
     }
 
     private fun updateIndicators(value: Int) {
@@ -1333,7 +1473,7 @@ class MainActivity : AppCompatActivity() {
         val criticalMalfunction = tellTales.criticalMalfunction == 1
         val otaPending = tellTales.otaPending == 1
 
-        if (tellTales.milState == 1) {
+       /* if (tellTales.milState == 1) {
             val milIcon = if (tellTales.milIcon == 1)
                 R.drawable.ic_international_mil
             else
@@ -1342,8 +1482,25 @@ class MainActivity : AppCompatActivity() {
             ivRightWarning5.setImageDrawable(getDrawable(this, milIcon))
         } else {
             ivRightWarning5.visibility = View.INVISIBLE
+        }*/
+        
+        if (tellTales.milIcon==1){
+            if (tellTales.milState==1)
+            {
+                ivRightWarning5.setImageDrawable(getDrawable(R.drawable.ic_international_mil))
+                ivRightWarning5.visibility = View.VISIBLE
+            }else if (tellTales.milState==2)
+            {
+                ivRightWarning5.setImageDrawable(getDrawable(R.drawable.ic_domestic_mil))
+                ivRightWarning5.visibility = View.VISIBLE
+            }
+            else{
+                ivRightWarning5.visibility = View.INVISIBLE
+            }
+        }else{
+            ivRightWarning5.visibility = View.INVISIBLE
         }
-
+        
         d("UUVV", "tellTales.milState:${tellTales.milState} Mil icon:${tellTales.milIcon}")
 
         val motorArmed = tellTales.motorArmed == 1
@@ -1423,7 +1580,8 @@ class MainActivity : AppCompatActivity() {
         //val isHoverMode=true
         isBallistic = tellTales.rideMode == 3
         d("UUVV", "Telltales modeHover :${tellTales.modeHover}  , isHoverMode:$isHoverMode ")
-        if (navController?.currentDestination?.id != R.id.hoverModeFragment && isHoverMode) {
+        if (navController?.currentDestination?.id != R.id.hoverModeFragment && isHoverMode && navController?.currentDestination?.id != R.id.debugFragment &&
+         navController?.currentDestination?.id != R.id.chargingFragment && navController?.currentDestination?.id != R.id.versionsFragment) {
             navController?.navigate(R.id.hoverModeFragment)
         }
 
@@ -1460,9 +1618,8 @@ class MainActivity : AppCompatActivity() {
 
 
         val chargeState = tellTales.charger
-        d("Faizuuuuu", "Telltales chargeState :${chargeState}")
+        d("ChargingDebug", "TellTales charger: $chargeState")
         navigateChargingScreen(chargeState)
-
         val absState = tellTales.absMode
         val absWarningLamp = tellTales.absWarningLamp
 
@@ -1472,6 +1629,24 @@ class MainActivity : AppCompatActivity() {
         val hazardOn = tellTales.hazardLamps == 1
         d("Faizuuuuu", "Telltales hazard :$hazardOn")
         onHazardUpdate(hazardOn)
+       val radarState = tellTales.radarIndicator
+        d("RadarState", "Telltales radar :$radarState")
+        handleRadarTelltales(radarState)
+         if(tellTales.thermalRunway==1){
+            navController?.navigate(R.id.thermalRunawayFragment)
+        }
+
+        val indicator=if(tellTales.indicatorRight==1)
+        {
+            1
+        }else if(tellTales.indicatorLeft==1){
+            2
+        }else{
+            0
+        }
+        onIndicatorUpdate(indicator)
+
+
     }
 
     private fun handleRegen(regenLevel: Int) {
@@ -1559,8 +1734,13 @@ class MainActivity : AppCompatActivity() {
                 tractionBlinkJob = blinkImage(ivTraction)
                 ivTraction.tag = R.drawable.ic_mtc
             }
+            4->{
+                ivTraction.setImageDrawable(getDrawable(this, R.drawable.ic_mtc_malfunction))
+                ivTraction.tag = R.drawable.ic_mtc_malfunction
 
-            2, 3, 4, 5, 6 -> {
+            }
+
+            2,3,5 -> {
                 stopTractionBlinking()
                 ivTraction.setImageDrawable(getDrawable(this, R.drawable.ic_mtc))
                 ivTraction.tag = R.drawable.ic_mtc
@@ -1653,13 +1833,13 @@ class MainActivity : AppCompatActivity() {
         stopHillHoldBlinking()
         when (state) {
             1 -> {
-                ivHillHold.visibility = View.VISIBLE
+                
                 ivHillHold.setImageDrawable(getDrawable(this, R.drawable.ic_hill_hold_malfunction))
                 ivHillHold.tag = R.drawable.ic_hill_hold_malfunction
             }
 
             2 -> {
-                ivHillHold.visibility = View.VISIBLE
+                
                 if (isDashboard) {
                     ivHillHold.setImageDrawable(getDrawable(this, R.drawable.ic_hill_hold_on))
                     ivHillHold.tag = R.drawable.ic_hill_hold_on
@@ -1670,13 +1850,14 @@ class MainActivity : AppCompatActivity() {
             }
 
             3 -> {
-                ivHillHold.visibility = View.VISIBLE
+               
                 ivHillHold.setImageDrawable(getDrawable(this, R.drawable.ic_hill_hold_active))
                 ivHillHold.tag = R.drawable.ic_hill_hold_active
             }
 
             else -> ivHillHold.visibility = View.INVISIBLE
         }
+       
     }
 
     private fun startToolbarClock() {// rtc v1.4(rtc
@@ -1705,7 +1886,14 @@ class MainActivity : AppCompatActivity() {
 
     fun blinkImage(imageView: ImageView): Job {
         return this.lifecycleScope.launch {
-            while (isActive) {
+            /*while (isActive) {
+                imageView.alpha = 0f
+                delay(400)
+                imageView.alpha = 1f
+                delay(400)
+            }
+            imageView.alpha = 1f*/
+	    while (isActive) {
                 imageView.alpha = 1f
                 delay(400)
                 imageView.alpha = 0f
@@ -1796,7 +1984,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun sendClusterReady() {
+    /*private fun sendClusterReady() {
         lifecycleScope.launch {
             d(tag, "Entering delay")
             // Wait 1 second (1000 milliseconds) for the CarService to connect
@@ -1805,11 +1993,35 @@ class MainActivity : AppCompatActivity() {
             val CLUSTER_TO_VCU_CLUSTER_READY = 0x2170036F
             val dataVal: Byte = 1
             val packet = byteArrayOf(dataVal)
-            d(tag, "Sending CLUSTER READY to VCU")
+            d("Cluster_ready", "Sending CLUSTER READY to VCU")
             sendByteArray(CLUSTER_TO_VCU_CLUSTER_READY, packet)
+            startAlsJob()
 
         }
+    }*/
+
+    private fun sendClusterReady() {
+    lifecycleScope.launch {
+        d(tag, "Entering delay")
+        delay(1000)
+
+        // ✅ Send Cluster Ready only ONCE per key cycle
+        if (!isClusterReady) {
+            val CLUSTER_TO_VCU_CLUSTER_READY = 0x2170036F
+            val dataVal: Byte = 1
+            val packet = byteArrayOf(dataVal)
+            d("Cluster_ready", "Sending CLUSTER READY to VCU")
+            sendByteArray(CLUSTER_TO_VCU_CLUSTER_READY, packet)
+            isClusterReady = true
+        } else {
+            d("Cluster_ready", "Already sent, skipping")
+        }
+
+        // ✅ Safe to call every time — startHeartbeat guards itself
+        carViewModel.startHeartbeat()
+        startAlsJob()
     }
+}
 
     fun setToolbarVisible(visible: Boolean) {
         findViewById<View>(R.id.clToolBar)?.visibility =
@@ -1894,6 +2106,35 @@ class MainActivity : AppCompatActivity() {
         resolveAndRender()
     }
 
+    fun onhighBeamTellTaleUpdate(value: Int) {
+        val highBeam = value == 1
+        d("Faizuuuuu", "Telltales High beam :$highBeam")
+
+        if (highBeam) {
+            ivLeftWarning2.setImageDrawable(getDrawable(this, R.drawable.ic_high_beam_toolbar))
+            ivLeftWarning2.visibility = View.VISIBLE
+        } else {
+            ivLeftWarning2.visibility = View.INVISIBLE
+        }
+    }
+
+    fun onhazardLightTellTaleUpdate(value: Int ) {
+        val hazardOn = value == 1
+        d("Faizuuuuu", "Telltales hazard :$hazardOn")
+        onHazardUpdate(hazardOn)
+    }
+
+    fun onmotorArmDisarmTellTaleUpdate(value: Int) {
+        val motorArmed = value == 1
+        d("Faizuuuuu", "Telltales motorArmed:$motorArmed")
+        ivMotorStatus.visibility = View.VISIBLE
+        if (motorArmed) {
+            ivMotorStatus.setImageDrawable(getDrawable(this, R.drawable.ic_motor_on))
+        } else {
+            ivMotorStatus.setImageDrawable(getDrawable(this, R.drawable.ic_motor_off))
+        }
+    }
+
     private fun resolveAndRender() {
         val newMode = when {
             hazardActive -> IndicatorMode.Hazard
@@ -1943,13 +2184,13 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun blinkHazard(right: ImageView, left: ImageView) {
-        val rightAnim = ObjectAnimator.ofFloat(right, View.ALPHA, 0f, 1f).apply {
+        val rightAnim = ObjectAnimator.ofFloat(right, View.ALPHA, 1f, 0f).apply {
             duration = 300
             repeatCount = ValueAnimator.INFINITE
             repeatMode = ValueAnimator.REVERSE
         }
 
-        val leftAnim = ObjectAnimator.ofFloat(left, View.ALPHA, 0f, 1f).apply {
+        val leftAnim = ObjectAnimator.ofFloat(left, View.ALPHA, 1f, 0f).apply {
             duration = 300
             repeatCount = ValueAnimator.INFINITE
             repeatMode = ValueAnimator.REVERSE
@@ -1968,4 +2209,6 @@ enum class IndicatorMode {
     Right,
     Hazard
 }
+
+
 

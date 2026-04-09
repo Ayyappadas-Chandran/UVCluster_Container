@@ -139,7 +139,7 @@ class AdvancedFeaturesFragment : Fragment() {
         val menuList = listOf(
             SettingMenuItem(getString(R.string.camera), R.id.cameraFragment),
             SettingMenuItem(getString(R.string.radar), R.id.radarFragment),
-            SettingMenuItem("Haptic", R.id.hapticFragment)
+            //SettingMenuItem("Haptic", R.id.hapticFragment)
         )
         verticalMenuAdapter = VerticalMenuAdapter(0, { destinationId, adapterPosition ->
             hasChildSelected = true

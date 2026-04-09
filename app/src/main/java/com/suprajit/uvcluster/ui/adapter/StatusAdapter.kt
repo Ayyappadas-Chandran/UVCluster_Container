@@ -36,7 +36,7 @@ class StatusAdapter :
         when (item.severity) {
             Severity.ERROR -> holder.tvStatus.setBackgroundResource(R.drawable.bg_fault_critical)
             Severity.WARNING  -> holder.tvStatus.setBackgroundResource(R.drawable.bg_fault_warning)
-            Severity.INFO  -> holder.tvStatus.setBackgroundResource(R.drawable.bg_fault_info)
+	    Severity.INFO  -> holder.tvStatus.setBackgroundResource(R.drawable.bg_fault_info)
             else              -> holder.tvStatus.setBackgroundResource(R.drawable.bg_fault_critical)
         }
     }

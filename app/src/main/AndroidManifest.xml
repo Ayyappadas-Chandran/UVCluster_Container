@@ -2,7 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     package="com.suprajit.uvcluster"
-    >
+    android:sharedUserId="android.uid.system">
 
     <uses-feature
         android:name="android.hardware.telephony"
@@ -13,7 +13,7 @@
     <uses-feature
         android:name="android.hardware.type.automotive"
         android:required="true" />
-
+        
     <uses-permission android:name="android.permission.UPDATE_ENGINE_API" />
 
     <uses-permission android:name="android.permission.READ_VEHICLE_SPEED" />
@@ -28,8 +28,10 @@
     <uses-permission android:name="android.car.permission.CAR_VENDOR_EXTENSION" />
     <uses-permission android:name="android.car.permission.CONTROL_CAR_VENDOR_EXTENSION"/>
     <uses-permission android:name="android.car.permission.CAR_POWER" />
-    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
 
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-feature android:name="android.hardware.camera2.full" />
 
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.BLUETOOTH" />
@@ -68,12 +70,20 @@
     <uses-permission
         android:name="android.permission.NETWORK_SETTINGS"
         tools:ignore="ProtectedPermissions" />
+    <uses-permission
+        android:name="android.permission.OVERRIDE_WIFI_CONFIG"
+        tools:ignore="ProtectedPermissions" />
     <uses-permission android:name="android.car.permission.CAR_VENDOR_EXTENSION" />
     <uses-permission android:name="android.car.permission.READ_CAR_DISPLAY_UNITS" />
     <uses-permission android:name="android.car.permission.CAR_POWER" />
     <uses-permission android:name="android.car.permission.CAR_HARDWARE" />
     <uses-permission android:name="android.car.permission.CAR_MONITORING" />
     <uses-permission android:name="android.car.permission.READ_CAR_PROPERTY" />
+    <uses-permission android:name="android.permission.BUGREPORT"/>
+     <uses-permission android:name="android.permission.DUMP"
+    tools:ignore="ProtectedPermissions" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <uses-feature android:name="android.hardware.usb.host" />
 
@@ -86,7 +96,6 @@
         android:label="@string/app_name"
         android:roundIcon="@drawable/ic_launcher_home"
         android:supportsRtl="true"
-        android:debuggable="true"
         android:theme="@style/Base.Theme.UVCluster"
         tools:targetApi="31">
         <activity
@@ -98,24 +107,20 @@
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
-<!--                <category android:name="android.intent.category.HOME" />
-                <category android:name="android.intent.category.DEFAULT" />-->
+                <category android:name="android.intent.category.HOME" />
+                <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
 
         <service
             android:name="com.android.car.CarService"
             android:permission="android.permission.BIND_CAR_SERVICE" />
-        <meta-data
-            android:name="androidx.profileinstaller.enabled"
-            android:value="false" />
-       <receiver
+<receiver
            android:name=".FotaReceiver"
            android:exported="true">
            <intent-filter>
                <action android:name="com.suprajit.ACTION_FOTA_EVENT"/>
-               <action android:name="com.suprajit.ACTION_UDP_TIMEOUT"/>
-
+	       <action android:name="com.suprajit.ACTION_UDP_TIMEOUT"/>
            </intent-filter>
        </receiver>
     </application>

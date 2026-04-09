@@ -166,8 +166,8 @@ class RadarFragment : Fragment() {
     }
 
     private fun updateUi(uiState: RadarUiState) {
-        //clRadarOn.isVisible = uiState.isRadarOn
-        clRadarOn.isVisible=false
+        clRadarOn.isVisible = uiState.isRadarOn
+        //clRadarOn.isVisible=false
 
         updateSelectionState(
             tvRadarOn,
@@ -243,5 +243,6 @@ class RadarFragment : Fragment() {
         carViewModel.sendByteArrayProperty(0x2170033F, packet)
     }
 }
+
 
 

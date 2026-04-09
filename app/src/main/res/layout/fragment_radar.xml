@@ -166,7 +166,8 @@
                 android:textFontWeight="400"
                 android:textSize="24sp"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/llConsoleAlert" />
+                app:layout_constraintTop_toBottomOf="@id/llConsoleAlert"
+                android:visibility="invisible"/>
 
             <LinearLayout
                 android:id="@+id/llMirrorAlert"
@@ -177,7 +178,8 @@
                 android:orientation="horizontal"
                 android:weightSum="2"
                 app:layout_constraintStart_toStartOf="@id/tvMirrorAlerts"
-                app:layout_constraintTop_toBottomOf="@id/tvMirrorAlerts">
+                app:layout_constraintTop_toBottomOf="@id/tvMirrorAlerts"
+                android:visibility="invisible">
 
                 <com.suprajit.uvcluster.ui.customWidget.BrutalTypeTextView
                     android:id="@+id/tvMirrorAlertsOn"
@@ -235,7 +237,8 @@
                 android:textFontWeight="500"
                 android:textSize="24sp"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/llMirrorAlert" />
+                app:layout_constraintTop_toBottomOf="@id/llMirrorAlert"
+                android:visibility="invisible"/>
 
             <LinearLayout
                 android:id="@+id/llAudioAlert"
@@ -246,7 +249,8 @@
                 android:orientation="horizontal"
                 android:weightSum="2"
                 app:layout_constraintStart_toStartOf="@id/tvAudioAlerts"
-                app:layout_constraintTop_toBottomOf="@id/tvAudioAlerts">
+                app:layout_constraintTop_toBottomOf="@id/tvAudioAlerts"
+                android:visibility="invisible">
 
                 <com.suprajit.uvcluster.ui.customWidget.BrutalTypeTextView
                     android:id="@+id/tvAudioAlertsOn"
@@ -296,3 +300,4 @@
         </androidx.constraintlayout.widget.ConstraintLayout>
     </androidx.constraintlayout.widget.ConstraintLayout>
 </androidx.core.widget.NestedScrollView>
+

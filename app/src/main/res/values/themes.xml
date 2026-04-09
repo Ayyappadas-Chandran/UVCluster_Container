@@ -15,6 +15,9 @@
         <item name="toolbarCenter">@drawable/toolbar_center_day</item>
         <item name="levelColor">@color/motorArmedGreyLight</item>
         <item name ="pbBgColor">@color/greyMediumLight</item>
+        <item name ="bdpowerbar">@color/greylightpb</item>
+        <item name="regen4level">@color/levelGreyLight</item>
+
     </style>
 
     <style name="Theme.Launcher" parent="Base.Theme.UVCluster" />
@@ -44,4 +47,6 @@
 
 
 </resources>
+
+
 

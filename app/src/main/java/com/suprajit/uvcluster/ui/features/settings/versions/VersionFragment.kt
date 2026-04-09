@@ -61,6 +61,7 @@ class fragment_versions : Fragment() {
     private lateinit var textViewImei: TextView
     private lateinit var textViewTime: TextView
     private lateinit var textViewDate: TextView
+    private lateinit var tvRh850Value: TextView
 
     private lateinit var enterTime: EditText
     private lateinit var setTime: Button
@@ -117,8 +118,23 @@ class fragment_versions : Fragment() {
         textViewTime = view.findViewById(R.id.textViewTime)
         textViewDate = view.findViewById(R.id.textViewDate)
         textViewImei = view.findViewById(R.id.textViewImei)
+        tvRh850Value=view.findViewById(R.id.tvRh850Value)
 
         textViewImei.text = "IMEI : " + getImei()
+
+        enterTime = view.findViewById(R.id.enterTime)
+        setTime = view.findViewById(R.id.setTime)
+
+        setTime.setOnClickListener {
+            val time = enterTime.text.toString()
+            Log.d(TAG, "Button clicked. Time value = $time")
+
+            if (time.isNotEmpty()) {
+                writeTimeToSystemFile(time)
+            } else {
+                Log.w(TAG, "Time is empty. Skipping file write.")
+            }
+        }
 
         tvTitle.setOnClickListener {
             val helper = BugReportHelper()
@@ -211,7 +227,7 @@ class fragment_versions : Fragment() {
         tvBatteryPercent.text = "$soc%"
     }
 
-    private fun handleImxFwVersions(imxFwVersionMs: ImxFwVersionMsg) {
+    private fun handleImxFwVersions(imxFwVersionMsg: ImxFwVersionMsg) {
         /*        val mcVersion = String(imxFwVersionMsg.mcSwVersion, Charsets.UTF_8)
                 val bmsVersion = String(imxFwVersionMsg.bmsFw, Charsets.UTF_8)
                 val mcProCode = imxFwVersionMsg.mcProductCode
@@ -219,7 +235,7 @@ class fragment_versions : Fragment() {
                 val dispVersion = String(imxFwVersionMsg.displayFw, Charsets.UTF_8)*/
 
         //dummy
-        val imxFwVersionMsg = ImxFwVersionMsg(
+        /*val imxFwVersionMsg = ImxFwVersionMsg(
             bmsFw = byteArrayOf(
                 49, 46, 48, 46, 51, 50, 44, 78, 111, 118, 32, 50, 54, 32, 50, 48,
                 50, 53, 44, 49, 53, 58, 51, 54, 58, 52, 51, 32, 124, 32, 50, 46,
@@ -232,16 +248,16 @@ class fragment_versions : Fragment() {
                 54, 32, 50, 48, 58, 48, 48, 58, 53, 48, 0, 0, 0, 0, 0, 0, 0, 0,
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
             ),
-            mcSwVersion  = byteArrayOf(5, 12, 126, 2, 1, 1, -1, -1, 0, 0),
-            mcHwVersion  = byteArrayOf(74, -93, 3, -75, 0, 0, 0, 4, 0, 0, 0),
+            mcSwVersion  = byteArrayOf(5, 12, 124, 2, 1, 0, -1, -1, 0, 0),
+            mcHwVersion  = byteArrayOf(-60, -82, -77, -28, 0, 0, 0, 0, 0, 0, 0),
             padding      = byteArrayOf(0, 0, 0),
-            mcProductCode    = 1296248882u,//to hexa to ascii
+            mcProductCode    = 1296248882u,
             mcDcfChecksum    = 0u,
             displayFw    = byteArrayOf(1, 5),
             chgFw        = byteArrayOf(1, 50, -114, 0),
             chargerType  = 205u,
             extChgFwVersion = 106u
-        )
+        )*/
         val mcVersion = imxFwVersionMsg.mcSwVersion
         val version = mcVersion
             .takeWhile { it != 0.toByte() }
@@ -264,6 +280,7 @@ class fragment_versions : Fragment() {
                 .trim()
                 .ifBlank { "-" }
         }
+        tvRh850Value.text=imxFwVersionMsg.displayFw.toRH850VersionString()
 
         d("UI Update", "version: $mcVersion, ${viewModel.socLimit}")
         /*        tvMcSwValue.text = "$version"
@@ -273,7 +290,7 @@ class fragment_versions : Fragment() {
                 tvDispFwVersion.text = "$firmwareVersion"*/
 
         tvMcSwValue.text =
-            imxFwVersionMsg.mcSwVersion.toMcVersionString()  // probably "1.5" or "5.1" – check which makes sense
+            imxFwVersionMsg.mcSwVersion.toMcVersionString()
         tvBmsFwValue.text = imxFwVersionMsg.bmsFw.toNullTerminatedString().ifBlank { "—" }
         /*tvMcPrdValue.text     = imxFwVersionMsg.displayFw.toNullTerminatedString().ifBlank { "—" }*/
         tvVcuFwValue.text = imxFwVersionMsg.vcuFw.toTrimmedAscii()
@@ -462,6 +479,12 @@ class fragment_versions : Fragment() {
         return "$major.$minor.$patch" +
                 "_$subMajor.$subMinor.$subPatch"
     }
+    fun ByteArray.toRH850VersionString(): String {
+        if (size < 2) return "-"
+        val major = this[0].toUByte().toInt()
+        val minor = this[1].toUByte().toInt()
+        return "$major.$minor"
+    }
 
     // Option C: Major.Minor style (most likely for your 2-byte displayFw)
     fun ByteArray.toMajorMinor(): String {
@@ -482,5 +505,6 @@ class fragment_versions : Fragment() {
     fun ByteArray.toHexString(): String =
         joinToString("") { "%02x".format(it.toUByte()) }
 }
+
 
 

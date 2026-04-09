@@ -12,7 +12,8 @@
         <item name="toolbarCenter">@drawable/toolbar_center_dark</item>
         <item name="levelColor">@color/motorArmedGreyNight</item>
         <item name ="pbBgColor">@color/grey</item>
-
+        <item name ="bdpowerbar">@color/greyDarkMedium</item>
+        <item name="regen4level">@color/levelGreyDark</item>
     </style>
 
     <style name="Theme.Launcher" parent="Base.Theme.UVCluster" />
@@ -46,4 +47,5 @@
 
 
 </resources>
+
 

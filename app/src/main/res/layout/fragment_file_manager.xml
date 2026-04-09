@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tool="http://schemas.android.com/tools"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tool:context="com.suprajit.uvcluster.ui.features.settings.filemanager.FileManagerFragment">
+
+
+    <!-- 🔝 Top Toolbar -->
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/topBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:title="File Manager"
+        android:backgroundTint="?attr/colorPrimary"
+        android:titleTextColor="@android:color/white"
+        app:menu="@menu/top_menu"/>
+
+    <!-- 📂 File List -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginTop="56dp"
+        android:padding="6dp"
+        android:clipToPadding="false"/>
+
+    <!-- ➕ Floating Action Button -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fab"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="16dp"
+        android:contentDescription="Actions"
+        android:src="@android:drawable/ic_menu_manage"
+        app:layout_anchorGravity="bottom|end"
+        tool:ignore="HardcodedText" />
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

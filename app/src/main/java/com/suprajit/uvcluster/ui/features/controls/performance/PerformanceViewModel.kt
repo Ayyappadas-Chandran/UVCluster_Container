@@ -50,7 +50,7 @@ class PerformanceViewModel(private val preferenceManager: PreferenceManager) :
     }
 
     fun saveRegenModes(is10Levels: Boolean) {
-        //preferenceManager.saveRegenType(is10Levels)
+        preferenceManager.saveRegenType(is10Levels)
         _uiState.update { it.copy(is10Levels = is10Levels) }
     }
 

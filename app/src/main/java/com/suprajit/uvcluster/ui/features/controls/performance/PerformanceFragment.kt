@@ -23,6 +23,7 @@ import androidx.navigation.fragment.findNavController
 import com.suprajit.uvcluster.R
 import com.suprajit.uvcluster.domain.ennumerate.ButtonNavigation
 import com.suprajit.uvcluster.ui.viewModel.CarViewModel
+import com.suprajit.uvcluster.ui.viewModel.SharedViewModel
 import com.suprajit.uvcluster.utils.Utilities
 import com.suprajit.uvcluster.utils.Utilities.getRegenValueForLevel4
 import com.suprajit.uvcluster.utils.Utilities.setOnSoundClickListener
@@ -76,6 +77,7 @@ class PerformanceFragment : Fragment() {
     private lateinit var ivMonoSelect: ImageView
     private val viewModel by viewModels<PerformanceViewModel> { ViewModelFactory(context = requireContext()) }
     private val carViewModel by activityViewModels<CarViewModel> { ViewModelFactory(context = requireContext()) }
+    private val sharedViewModel by activityViewModels<SharedViewModel> { ViewModelFactory(context = requireContext()) }
     private val segmentIds = listOf(
         R.id.vRegenLevel1,
         R.id.vRegenLevel2,
@@ -430,7 +432,7 @@ class PerformanceFragment : Fragment() {
             ButtonNavigation.Right.ordinal -> {
                 when (uiState.focusedState) {
                     FocusedState.RegenModes -> {
-                        //viewModel.saveRegenModes(!uiState.is10Levels)
+                        viewModel.saveRegenModes(!uiState.is10Levels)
                     }
                     FocusedState.Regen -> {
                         if (uiState.is10Levels) {
@@ -488,7 +490,7 @@ class PerformanceFragment : Fragment() {
             ButtonNavigation.Left.ordinal -> {
                 when (uiState.focusedState) {
                     FocusedState.RegenModes ->{
-                        //viewModel.saveRegenModes(!uiState.is10Levels)
+                        viewModel.saveRegenModes(!uiState.is10Levels)
                     }
                     FocusedState.Regen -> {
                         if (uiState.is10Levels) {
@@ -585,18 +587,20 @@ class PerformanceFragment : Fragment() {
             viewModel.saveRegenModes(true)
         }
         tvFourLevels.setOnSoundClickListener(requireContext()) {
-            return@setOnSoundClickListener
-            /* viewModel.setFocusedState(FocusedState.RegenModes)
-             viewModel.saveRegenModes(false)*/
+            //return@setOnSoundClickListener
+            viewModel.setFocusedState(FocusedState.RegenModes)
+            viewModel.saveRegenModes(false)
         }
         tvHillHoldOn.setOnSoundClickListener(requireContext()) {
             viewModel.setFocusedState(FocusedState.HillHold)
             viewModel.saveHillHold(true)
+            sharedViewModel.setHillHold(true)
             writeHillHoldToVcu(true)
         }
         tvHillHoldOff.setOnSoundClickListener(requireContext()) {
             viewModel.setFocusedState(FocusedState.HillHold)
             viewModel.saveHillHold(false)
+            sharedViewModel.setHillHold(false)
             writeHillHoldToVcu(false)
         }
         tvSurgeModeOn.setOnSoundClickListener(requireContext()) {
@@ -612,18 +616,30 @@ class PerformanceFragment : Fragment() {
         tvR0.setOnSoundClickListener(requireContext()) {
             viewModel.setFocusedState(FocusedState.Regen)
             viewModel.saveRegenValue(0)
+            val dataVal: Byte = 0.toByte()
+            val packet = byteArrayOf(dataVal)
+            carViewModel.sendByteArrayProperty(0x2170039F, packet)
         }
         tvR3.setOnSoundClickListener(requireContext()) {
             viewModel.setFocusedState(FocusedState.Regen)
             viewModel.saveRegenValue(3)
+            val dataVal: Byte = 3.toByte()
+            val packet = byteArrayOf(dataVal)
+            carViewModel.sendByteArrayProperty(0x2170039F, packet)
         }
         tvR6.setOnSoundClickListener(requireContext()) {
             viewModel.setFocusedState(FocusedState.Regen)
             viewModel.saveRegenValue(6)
+            val dataVal: Byte = 6.toByte()
+            val packet = byteArrayOf(dataVal)
+            carViewModel.sendByteArrayProperty(0x2170039F, packet)
         }
         tvR9.setOnSoundClickListener(requireContext()) {
             viewModel.setFocusedState(FocusedState.Regen)
             viewModel.saveRegenValue(9)
+            val dataVal: Byte = 9.toByte()
+            val packet = byteArrayOf(dataVal)
+            carViewModel.sendByteArrayProperty(0x2170039F, packet)
         }
         tvMonoAbsCustom.setOnSoundClickListener(requireContext()){
             writeAbsToVcu(true)
@@ -800,4 +816,5 @@ class PerformanceFragment : Fragment() {
 
 
 }
+
 
