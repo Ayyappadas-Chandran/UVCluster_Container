@@ -208,10 +208,10 @@ class BatteryFragment : Fragment() {
             findNavController().navigateUp()
         }
 
-        tvWinterMode.setOnSoundClickListener(requireContext()) {
+        /*tvWinterMode.setOnSoundClickListener(requireContext()) {
             viewModel.updateBatteryUi(true)
             findNavController().navigate(R.id.action_batteryFragment_to_winterModeFragment)
-        }
+        }*/
 
         sbBatteryLimit.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {

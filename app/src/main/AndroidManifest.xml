@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    package="com.suprajit.uvcluster"
-    android:sharedUserId="android.uid.system">
+    package="com.suprajit.uvcluster">
 
     <uses-feature
         android:name="android.hardware.telephony"
@@ -84,6 +83,7 @@
     tools:ignore="ProtectedPermissions" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.READ_LOGS" />
 
     <uses-feature android:name="android.hardware.usb.host" />
 

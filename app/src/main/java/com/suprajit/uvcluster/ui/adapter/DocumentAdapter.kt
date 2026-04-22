@@ -47,12 +47,12 @@ class DocumentAdapter(
         val isPortrait = options.outHeight > options.outWidth
 
         holder.itemView.tag = if (isPortrait) IMAGE_PORTRAIT else IMAGE_LANDSCAPE
-        holder.itemView.setOnClickListener {
+        /*holder.itemView.setOnClickListener {
             val index = position.getIndex(isPortrait)
             if (index in images.indices) {
                 zoomedImageIndex.invoke(images[index])
             }
-        }
+        }*/
         holder.itemView.setOnTouchListener { v, event ->
             if (event.pointerCount > 1 && event.actionMasked == MotionEvent.ACTION_POINTER_DOWN) {
                 val index = position.getIndex(isPortrait)

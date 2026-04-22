@@ -152,7 +152,7 @@ class SharedViewModel(private val preferenceManager: PreferenceManager) : ViewMo
     fun resetThemeChangeFlag() {
         viewModelScope.launch {
             // Give VHAL 1 second to finish re-sending old cached data
-            delay(5000)
+            delay(3000)
             hasThemeConfigChanged = false
             d("ThemeChange", "Flag reset to false. Alerts are now active.")
         }

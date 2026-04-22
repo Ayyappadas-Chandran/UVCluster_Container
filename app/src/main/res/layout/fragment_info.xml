@@ -159,7 +159,7 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="40dp"
         android:layout_marginTop="40dp"
-        android:text="Vairant"
+        android:text="Variant"
         android:textColor="@color/unSelectedTitle"
         android:textFontWeight="400"
         android:textSize="20sp"
@@ -216,6 +216,7 @@
         app:layout_constraintStart_toEndOf="@id/tvOdoMeter"
         app:layout_constraintTop_toBottomOf="@id/tvOdometerLabel" />
 
+    <!-- Color & VIN -->
     <com.suprajit.uvcluster.ui.customWidget.BrutalTypeTextView
         android:id="@+id/tvColorLabel"
         android:layout_width="wrap_content"
@@ -284,11 +285,12 @@
         app:layout_constraintStart_toStartOf="@id/tvImeiLabel"
         app:layout_constraintTop_toBottomOf="@id/tvImeiLabel" />
 
+    <!-- Vehicle Software Section -->
     <com.suprajit.uvcluster.ui.customWidget.BrutalTypeTextView
         android:id="@+id/tvSoftwareVersionLabel"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Vehicle Software"
+        android:text="Vehicle Software Versions"
         android:textColor="@color/unSelectedTitle"
         android:textSize="20sp"
         app:layout_constraintBottom_toBottomOf="@id/tvImeiLabel"
@@ -300,11 +302,69 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
-        android:text="V 1.1"
-        android:textColor="@color/lightGrey"
-        android:textSize="24sp"
+        android:text="VCU : "
+        android:textColor="@color/unSelectedTitle"
+        android:textSize="20sp"
         app:layout_constraintStart_toStartOf="@id/tvSoftwareVersionLabel"
         app:layout_constraintTop_toBottomOf="@id/tvSoftwareVersionLabel" />
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+    <com.suprajit.uvcluster.ui.customWidget.BrutalTypeTextView
+        android:id="@+id/tvVcuVersion"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="V3"
+        android:textColor="@color/lightGrey"
+        android:textSize="20sp"
+        app:layout_constraintStart_toEndOf="@id/tvSoftwareVersion"
+        app:layout_constraintTop_toBottomOf="@id/tvSoftwareVersionLabel" />
 
+    <!-- MCU Version -->
+    <com.suprajit.uvcluster.ui.customWidget.BrutalTypeTextView
+        android:id="@+id/tvMcuLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:layout_marginStart="8dp"
+        android:text="MCU : "
+        android:textColor="@color/unSelectedTitle"
+        android:textSize="20sp"
+        app:layout_constraintStart_toEndOf="@id/tvVcuVersion"
+        app:layout_constraintTop_toBottomOf="@id/tvSoftwareVersionLabel" />
+
+    <com.suprajit.uvcluster.ui.customWidget.BrutalTypeTextView
+        android:id="@+id/tvMcuVersion"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="V7"
+        android:textColor="@color/lightGrey"
+        android:textSize="20sp"
+        app:layout_constraintStart_toEndOf="@id/tvMcuLabel"
+        app:layout_constraintTop_toBottomOf="@id/tvSoftwareVersionLabel" />
+
+    <!-- BMS Version -->
+    <com.suprajit.uvcluster.ui.customWidget.BrutalTypeTextView
+        android:id="@+id/tvBmsLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:layout_marginStart="8dp"
+        android:text="BMS : "
+        android:textColor="@color/unSelectedTitle"
+        android:textSize="20sp"
+        app:layout_constraintStart_toEndOf="@id/tvMcuVersion"
+        app:layout_constraintTop_toBottomOf="@id/tvSoftwareVersionLabel" />
+
+    <com.suprajit.uvcluster.ui.customWidget.BrutalTypeTextView
+        android:id="@+id/tvBmsVersion"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="V1"
+        android:textColor="@color/lightGrey"
+        android:textSize="20sp"
+        app:layout_constraintStart_toEndOf="@id/tvBmsLabel"
+        app:layout_constraintTop_toBottomOf="@id/tvSoftwareVersionLabel" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

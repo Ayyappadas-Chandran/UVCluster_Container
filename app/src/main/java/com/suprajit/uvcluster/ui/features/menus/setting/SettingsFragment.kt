@@ -352,11 +352,7 @@ class SettingsFragment : Fragment() {
             SettingMenuItem(getString(R.string.sound), R.id.soundFragment),
             SettingMenuItem(getString(R.string.general), R.id.generalFragment),
             SettingMenuItem(getString(R.string.system_updates), R.id.systemUpdatesFragment),
-            SettingMenuItem(getString(R.string.factory_reset), R.id.factoryResetFragment),
-            SettingMenuItem("Debug Screen", R.id.debugFragment),
-            SettingMenuItem("Versions", R.id.versionsFragment),
-            SettingMenuItem("LOCATION", R.id.locationFragment),
-	    SettingMenuItem("Filemanager", R.id.filemanagerFragment)
+            SettingMenuItem("BUG REPORT", R.id.factoryResetFragment),
         )
 
         verticalMenuAdapter = VerticalMenuAdapter(position, { destinationId, adapterPosition ->

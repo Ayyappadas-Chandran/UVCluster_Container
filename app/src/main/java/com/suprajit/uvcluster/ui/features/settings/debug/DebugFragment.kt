@@ -60,6 +60,8 @@ import android.content.Intent
 import android.net.Uri
 import android.provider.DocumentsContract
 import androidx.activity.result.contract.ActivityResultContracts
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 
 class DebugFragment : Fragment() {
     private lateinit var gestureDetector: GestureDetector
@@ -100,6 +102,7 @@ class DebugFragment : Fragment() {
     private lateinit var  buttonStop : Button
     private lateinit var buttonToNextPage: Button
     private var isHover=false
+    private var isCHarging = false
 
     private val vcuFlags = listOf(
         VcuFlag(0, "STAT_VCU_LOG_UPLOAD_RUNNING", Severity.ERROR),
@@ -480,17 +483,17 @@ class DebugFragment : Fragment() {
         MiscFlag(93, "IMU_FRAME_CAL_MISSING", Severity.INFO),
         MiscFlag(94, "MC_CC_FEAT_EN", Severity.INFO),
         MiscFlag(95, "ABS_WARNING_LAMP_ON", Severity.INFO),
+        MiscFlag(96, "VNIC_USB_TX_ABORTED", Severity.INFO),
+        MiscFlag(97, "USB_HBT_TIMEOUT", Severity.INFO),
+        MiscFlag(98, "USB_HBT_DISABLED", Severity.INFO),
+        MiscFlag(99, "ALS_INVALID_SCAN", Severity.INFO),
+        MiscFlag(100, "MC_BAAS_LOCKDOWN_TRIGGERED", Severity.INFO),
+        MiscFlag(101, "MC_IN_BAAS_LOCKDOWN", Severity.INFO),
+        MiscFlag(102, "DSP_IMEI_UPD_EVENT", Severity.INFO),
+        MiscFlag(103, "DSP_VIN_UPD_EVENT", Severity.INFO),
 
-        /* -------- Unused (96–127) -------- */
+        /* -------- Remaining Unused (104–127) -------- */
 
-        MiscFlag(96, "UNUSED_96", Severity.INFO),
-        MiscFlag(97, "UNUSED_97", Severity.INFO),
-        MiscFlag(98, "UNUSED_98", Severity.INFO),
-        MiscFlag(99, "UNUSED_99", Severity.INFO),
-        MiscFlag(100, "UNUSED_100", Severity.INFO),
-        MiscFlag(101, "UNUSED_101", Severity.INFO),
-        MiscFlag(102, "UNUSED_102", Severity.INFO),
-        MiscFlag(103, "UNUSED_103", Severity.INFO),
         MiscFlag(104, "UNUSED_104", Severity.INFO),
         MiscFlag(105, "UNUSED_105", Severity.INFO),
         MiscFlag(106, "UNUSED_106", Severity.INFO),
@@ -515,6 +518,7 @@ class DebugFragment : Fragment() {
         MiscFlag(125, "UNUSED_125", Severity.INFO),
         MiscFlag(126, "UNUSED_126", Severity.INFO),
         MiscFlag(127, "UNUSED_127", Severity.INFO),
+
         MiscFlag(128, "MAX_MISC_STATUS_FLAGS", Severity.INFO)
     )
 
@@ -564,11 +568,11 @@ class DebugFragment : Fragment() {
         }
         tvHeader.text = "DEBUG"
         tvImei.text = "IMEI : " + getImei()
+        startLogging(requireContext())
         initObserver()
         buttonStart.setOnClickListener {
             folderPickerLauncher.launch(null)
-
-            startLogging(requireContext())
+            //startLogging(requireContext())
             d("DebugFragment", "Critical log capture STARTED")
         }
 
@@ -604,10 +608,12 @@ class DebugFragment : Fragment() {
                 }
 
                 override fun onDoubleTap(e: MotionEvent): Boolean {
-                    if (isHover){
-                        findNavController().navigate(R.id.hoverModeFragment)}
-                    else{
-                    findNavController().navigate(R.id.dashboardFragment)}
+                    val destination = when {
+                        isHover -> R.id.hoverModeFragment
+                        isCHarging -> R.id.chargingFragment
+                        else -> R.id.dashboardFragment
+                    }
+                    findNavController().navigate(destination)
                     return true
                 }
             }
@@ -887,10 +893,12 @@ class DebugFragment : Fragment() {
                     carViewModel.swiftButton.collect { swiftButton ->
                         val button = Utilities.getButtonState(swiftButton)
                          if (ButtonNavigation.Enter == button) {
-                            if (isHover)
-                            findNavController().navigate(R.id.hoverModeFragment)
-                            else
-                                findNavController().navigate(R.id.dashboardFragment)
+                             val destination = when {
+                                 isHover -> R.id.hoverModeFragment
+                                 isCHarging -> R.id.chargingFragment
+                                 else -> R.id.dashboardFragment
+                             }
+                             findNavController().navigate(destination)
                         }
                         if (ButtonNavigation.Right == button) {
                             findNavController().navigate(R.id.action_debugFragment_to_versionFragment)
@@ -920,6 +928,7 @@ class DebugFragment : Fragment() {
                launch {
                     carViewModel.tellTales.collect { tellTales ->
                        isHover= tellTales.modeHover==1
+                        isCHarging = tellTales.charger == 1 || tellTales.charger == 2
                     }
                 }
             }
@@ -1061,59 +1070,26 @@ class DebugFragment : Fragment() {
     }
 
     fun startLogging(context: Context) {
-        if (logProcess != null) return
-        try {
-            val file = File("/data/logs_critical", "critical_log.txt")
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val process = Runtime.getRuntime().exec(arrayOf("sh", "/system/etc/onDemand_logcat.sh"))
 
-            // Overwrite file each time (minimal size strategy)
-            writer = BufferedWriter(FileWriter(file, false))
+                // Read stdout
+                val stdout = process.inputStream.bufferedReader().readText()
+                // Read stderr — this is where your error will be hiding
+                val stderr = process.errorStream.bufferedReader().readText()
 
-            // Clear old logcat buffer
-            Runtime.getRuntime().exec("logcat -c")
+                val exitCode = process.waitFor()
 
-            logProcess = Runtime.getRuntime().exec(
-                "logcat -v time AndroidRuntime:E ActivityManager:E libc:F DEBUG:E *:S"
-            )
-
-            logThread = Thread {
-                try {
-                    val reader = BufferedReader(
-                        InputStreamReader(logProcess!!.inputStream)
-                    )
-
-                    while (!Thread.currentThread().isInterrupted) {
-                        val line = reader.readLine() ?: break
-                        writer?.apply {
-                            write(line)
-                            newLine()
-                            flush()  // optional: remove for better performance
-                        }
-                    }
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                }
+                d("LOGGING", "Exit code: $exitCode")
+                d("LOGGING", "stdout: $stdout")
+                e("LOGGING", "stderr: $stderr")  // <-- Check this in logcat
+            } catch (e: Exception) {
+                e("LOGGING", "Exception: ${e.message}", e)
             }
-
-            logThread?.start()
-
-        } catch (e: Exception) {
-            e.printStackTrace()
         }
     }
     fun stopLogging() {
-        try {
-            logThread?.interrupt()
-            logProcess?.destroy()
-
-            writer?.flush()
-            writer?.close()
-
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-        logProcess = null
-        logThread = null
-        writer = null
     }
 }
 

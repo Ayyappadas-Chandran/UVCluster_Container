@@ -110,6 +110,9 @@ class DashboardFragment : Fragment() {
     private var isMotorArmed = false
     private var isNegativePower=false
     var regenUnAvailable=false
+    private var doubleTapCount = 0
+    private var lastDoubleTapTime: Long = 0
+    private val DOUBLE_TAP_WINDOW = 1000
     private val debugSequence = listOf(
         ButtonNavigation.Back.ordinal,
         ButtonNavigation.Right.ordinal,
@@ -177,7 +180,31 @@ class DashboardFragment : Fragment() {
                 }
 
                 override fun onDoubleTap(e: MotionEvent): Boolean {
-                    findNavController()?.navigate(R.id.debugFragment)
+                    val w = (rootView?.width ?: resources.displayMetrics.widthPixels).toFloat()
+                    val h = (rootView?.height ?: resources.displayMetrics.heightPixels).toFloat()
+                    val currentTime = System.currentTimeMillis()
+
+                    val isInBottomRight = e.x > w * 0.85f && e.y > h * 0.85f
+                    d("Secret", "DoubleTap x=${e.x} y=${e.y} w=$w h=$h inCorner=$isInBottomRight")
+
+                    if (isInBottomRight) {
+                        if (currentTime - lastDoubleTapTime < DOUBLE_TAP_WINDOW) {
+                            doubleTapCount++
+                        } else {
+                            doubleTapCount = 1
+                        }
+                        lastDoubleTapTime = currentTime
+
+                        d("Secret", "Count=$doubleTapCount")
+
+                        if (doubleTapCount >= 2) {
+                            onSecretTriggered()
+                            doubleTapCount = 0
+                        }
+                    } else {
+                        doubleTapCount = 0
+                    }
+
                     return true
                 }
             })
@@ -191,6 +218,10 @@ class DashboardFragment : Fragment() {
         }
     }
 
+    private fun onSecretTriggered() {
+        d("Secret", "Triggered! NavController=${findNavController()}")
+        findNavController()?.navigate(R.id.debugFragment)
+    }
     private fun onSwipeUp() {
 
 
@@ -359,7 +390,7 @@ class DashboardFragment : Fragment() {
                     }
                 }
 
-               launch {
+                launch {
                     carViewModel.rcwRadarState.collect {rcwState->
                         if (!sharedViewModel.isConsoleAlertsOn) return@collect
                         if(rcwState) {
@@ -369,15 +400,15 @@ class DashboardFragment : Fragment() {
                                     R.drawable.bg_dashboard_radar_right_alert
                                 )
                             )
-                            
+
                             ivBgBottomRadarLeft.setImageDrawable(
                                 ContextCompat.getDrawable(
                                     requireContext(),
                                     R.drawable.bg_radar_left_alert
                                 )
                             )
-                             ivBgBottomRadarRight.visibility = View.VISIBLE
-                             ivBgBottomRadarLeft.visibility = View.VISIBLE
+                            ivBgBottomRadarRight.visibility = View.VISIBLE
+                            ivBgBottomRadarLeft.visibility = View.VISIBLE
                         }
                         else{
                             ivBgBottomRadarRight.visibility = View.INVISIBLE
@@ -501,7 +532,7 @@ class DashboardFragment : Fragment() {
     }
     private fun handleButtonNavigation(button: Int) {
 
-	val currentTime = System.currentTimeMillis()
+        val currentTime = System.currentTimeMillis()
 
         // 1. Check for Timeout: If too much time passed, reset the sequence progress
         if (currentTime - lastClickTime > SEQUENCE_TIMEOUT) {

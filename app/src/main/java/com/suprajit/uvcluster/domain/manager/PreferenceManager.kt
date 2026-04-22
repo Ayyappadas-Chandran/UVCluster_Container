@@ -137,6 +137,17 @@ class PreferenceManager(val sharedPreferenceRepository: SharedPreferenceReposito
 
     val trips
         get() = sharedPreferenceRepository.getPref(PREF_TRIPS, 1)
+    val chargerFwExt: String
+        get() = sharedPreferenceRepository.getPref(PREF_CHARGER_FW_EXT, "")
+
+    val chargerFwObc: String
+        get() = sharedPreferenceRepository.getPref(PREF_CHARGER_FW_OBC, "")
+
+    val chargerVersion: String
+        get() = sharedPreferenceRepository.getPref(PREF_CHARGER_VERSION, "")
+
+    val chargerTypeValue: String
+        get() = sharedPreferenceRepository.getPref(PREF_CHARGER_TYPE_VALUE, "")
 
     fun saveHaptic(isEnabled: Boolean) {
         sharedPreferenceRepository.savePref(PREF_HAPTIC, isEnabled)
@@ -289,6 +300,11 @@ class PreferenceManager(val sharedPreferenceRepository: SharedPreferenceReposito
         sharedPreferenceRepository.savePref(PREF_BALLISTIC_PLUS,isBallisticPlus)
     }
 
+    fun saveChargerFwExt(value: String)      = sharedPreferenceRepository.savePref(PREF_CHARGER_FW_EXT, value)
+    fun saveChargerFwObc(value: String)      = sharedPreferenceRepository.savePref(PREF_CHARGER_FW_OBC, value)
+    fun saveChargerVersion(value: String)    = sharedPreferenceRepository.savePref(PREF_CHARGER_VERSION, value)
+    fun saveChargerTypeValue(value: String)  = sharedPreferenceRepository.savePref(PREF_CHARGER_TYPE_VALUE, value)
+
 //
 
     companion object{
@@ -327,6 +343,10 @@ class PreferenceManager(val sharedPreferenceRepository: SharedPreferenceReposito
         private const val PREF_OTA_OLD_BUILD = "pref_ota_old_build"
         private const val PREF_BALLISTIC_PLUS = "pref_surge_alert"
         private const val PREF_TRIPS = "pref_trips"
+        private const val PREF_CHARGER_FW_EXT     = "pref_charger_fw_ext"
+        private const val PREF_CHARGER_FW_OBC     = "pref_charger_fw_obc"
+        private const val PREF_CHARGER_VERSION    = "pref_charger_version"
+        private const val PREF_CHARGER_TYPE_VALUE = "pref_charger_type_value"
 
 
 

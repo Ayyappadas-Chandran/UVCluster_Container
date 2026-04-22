@@ -122,7 +122,7 @@ object ClusterNotification {
         }
 
         val lp = WindowManager.LayoutParams(
-            dpToPx(context, 520f), dpToPx(context, 120f),
+            dpToPx(context, 600f), dpToPx(context, 120f),
             params.windowType,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
             PixelFormat.TRANSLUCENT
@@ -173,14 +173,31 @@ object ClusterNotification {
             tag = "dismiss_btn"
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER
-            setPadding(dpToPx(ctx, 12f), 0, dpToPx(ctx, 12f), 0)
+            setPadding(dpToPx(ctx, 12f), 0, dpToPx(ctx, 4f), 0)
+
+            // Fixed width so it is never squeezed by textLayout's weight
+            layoutParams = LinearLayout.LayoutParams(
+                dpToPx(ctx, 64f),
+                LinearLayout.LayoutParams.MATCH_PARENT
+            )
+
             addView(ImageView(ctx).apply {
                 setImageResource(android.R.drawable.ic_menu_close_clear_cancel)
                 setColorFilter(Color.WHITE)
-                layoutParams = LinearLayout.LayoutParams(dpToPx(ctx, 24f), dpToPx(ctx, 24f))
+                layoutParams = LinearLayout.LayoutParams(dpToPx(ctx, 24f), dpToPx(ctx, 24f)).also {
+                    it.gravity = Gravity.CENTER_HORIZONTAL
+                }
             })
             addView(TextView(ctx).apply {
-                text = "Dismiss"; textSize = 12f; setTextColor(Color.WHITE)
+                text = "Dismiss"
+                textSize = 12f
+                setTextColor(Color.WHITE)
+                maxLines = 1
+                gravity = Gravity.CENTER_HORIZONTAL
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                )
             })
         }
 

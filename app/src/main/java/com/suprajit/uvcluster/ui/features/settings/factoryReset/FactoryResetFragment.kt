@@ -1,9 +1,12 @@
 package com.suprajit.uvcluster.ui.features.settings.factoryReset
 
+import android.content.Context
 import android.graphics.RenderEffect
 import android.graphics.Shader
 import android.os.Build
 import android.os.Bundle
+import android.util.Log.d
+import android.util.Log.e
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -20,6 +23,9 @@ import com.suprajit.uvcluster.ui.viewModel.CarViewModel
 import com.suprajit.uvcluster.ui.viewModel.SharedViewModel
 import com.suprajit.uvcluster.utils.Utilities.setOnSoundClickListener
 import com.suprajit.uvcluster.utils.ViewModelFactory
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class FactoryResetFragment : Fragment() {
     private lateinit var tvReset: TextView
@@ -94,7 +100,9 @@ class FactoryResetFragment : Fragment() {
                 )
                 setTextColor(ContextCompat.getColor(requireContext(), R.color.white))
             }
-            showFactoryResetDialog()
+            //showFactoryResetDialog()
+            startLogging(requireContext())
+
         }
     }
 
@@ -129,5 +137,25 @@ class FactoryResetFragment : Fragment() {
             }
             .create()
         factoryResetDialog?.show()
+    }
+    fun startLogging(context: Context) {
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val process = Runtime.getRuntime().exec(arrayOf("sh", "/system/etc/onDemand_logcat.sh"))
+
+                // Read stdout
+                val stdout = process.inputStream.bufferedReader().readText()
+                // Read stderr — this is where your error will be hiding
+                val stderr = process.errorStream.bufferedReader().readText()
+
+                val exitCode = process.waitFor()
+
+                d("LOGGING", "Exit code: $exitCode")
+                d("LOGGING", "stdout: $stdout")
+                e("LOGGING", "stderr: $stderr")  // <-- Check this in logcat
+            } catch (e: Exception) {
+                e("LOGGING", "Exception: ${e.message}", e)
+            }
+        }
     }
 }

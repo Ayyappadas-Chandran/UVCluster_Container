@@ -149,8 +149,6 @@ object VcuMiscFlags {
     const val STAT_VCU_RDR_SENSOR_ACTIVE = 62
     const val STAT_VCU_RDR_SENSOR_INSPECTION = 63
 
-    /* -------- Status Word Group 2 (64–84) -------- */
-
     const val STAT_VCU_RDR_REAR_CRC_ERR = 64
     const val STAT_VCU_RDR_FRONT_CRC_ERR = 65
     const val STAT_VCU_MC_SURGE_MODE = 66
@@ -172,26 +170,28 @@ object VcuMiscFlags {
     const val STAT_VCU_CCG_RX_ERR = 82
     const val STAT_VCU_CHARGER_FLAP_OPENED = 83
     const val STAT_VCU_MC_TMAP_FACT_RESET_AT_BOOT = 84
-    //newly added
-    const val STAT_VCU_CD_DETECTED= 85
-    const val STAT_VCU_SHMEM_OOM                   = 86
-    const val STAT_VCU_CPU_CORE_OVERTEMP_ALERT     = 87
-    const val STAT_VCU_MC_CC_OFF                   = 88
-    const val STAT_VCU_MC_CC_STBY                  = 89
-    const val STAT_VCU_MC_CC_ACTIVE                = 90
-    const val STAT_VCU_MC_CC_ERROR                 = 91
-    const val STAT_VCU_IMU_WORLD_CAL_MISSING       = 92
-    const val STAT_VCU_IMU_FRAME_CAL_MISSING       = 93
-    const val STAT_VCU_MC_CC_FEAT_EN		 = 94
-    const val STAT_VCU_ABS_WARNING_LAMP_ON         = 95
-    const val STAT_VCU_UNUSED_96         = 96
-    const val STAT_VCU_UNUSED_97  = 97
-    const val STAT_VCU_UNUSED_98  = 98
-    const val STAT_VCU_UNUSED_99  = 99
-    const val STAT_VCU_UNUSED_100 = 100
-    const val STAT_VCU_UNUSED_101 = 101
-    const val STAT_VCU_UNUSED_102 = 102
-    const val STAT_VCU_UNUSED_103 = 103
+    const val STAT_VCU_CD_DETECTED = 85
+    const val STAT_VCU_SHMEM_OOM = 86
+    const val STAT_VCU_CPU_CORE_OVERTEMP_ALERT = 87
+    const val STAT_VCU_MC_CC_OFF = 88
+    const val STAT_VCU_MC_CC_STBY = 89
+    const val STAT_VCU_MC_CC_ACTIVE = 90
+    const val STAT_VCU_MC_CC_ERROR = 91
+    const val STAT_VCU_IMU_WORLD_CAL_MISSING = 92
+    const val STAT_VCU_IMU_FRAME_CAL_MISSING = 93
+    const val STAT_VCU_MC_CC_FEAT_EN = 94
+    const val STAT_VCU_ABS_WARNING_LAMP_ON = 95
+    const val STAT_VCU_VNIC_USB_TX_ABORTED = 96
+    const val STAT_VCU_USB_HBT_TIMEOUT = 97
+    const val STAT_VCU_USB_HBT_DISABLED = 98
+    const val STAT_VCU_ALS_INVALID_SCAN = 99
+    const val STAT_VCU_MC_BAAS_LOCKDOWN_TRIGGERED = 100
+    const val STAT_VCU_MC_IN_BAAS_LOCKDOWN = 101
+    const val STAT_VCU_DSP_IMEI_UPD_EVENT = 102
+    const val STAT_VCU_DSP_VIN_UPD_EVENT = 103
+
+    /* -------- Unused (104–127) -------- */
+
     const val STAT_VCU_UNUSED_104 = 104
     const val STAT_VCU_UNUSED_105 = 105
     const val STAT_VCU_UNUSED_106 = 106
@@ -217,9 +217,8 @@ object VcuMiscFlags {
     const val STAT_VCU_UNUSED_126 = 126
     const val STAT_VCU_UNUSED_127 = 127
 
-
     /** Total number of valid misc status flags */
-    const val MAX_MISC_STATUS_FLAGS =128 //previously 85
+    const val MAX_MISC_STATUS_FLAGS = 128
 }
 
 

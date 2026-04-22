@@ -1076,12 +1076,12 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
          super.onResume()
+        //navController?.navigate(R.id.debugFragment)
 
     // Ensure WiFi ON
             if (!wifiViewModel.isWifiEnabled()) {
         wifiViewModel.enableWifi(true)
     }
-
    
 
             
@@ -1686,6 +1686,7 @@ class MainActivity : AppCompatActivity() {
         ivAbsState.visibility = View.VISIBLE
         absWarningJob?.cancel()
         absWarningJob = null
+        ivAbsState.alpha = 1f
         when (absWarning) {
             0 -> {
                 showAbsMode(absMode)
@@ -1698,6 +1699,7 @@ class MainActivity : AppCompatActivity() {
             2 -> {
                 ivAbsState.setImageDrawable(getDrawable(this, R.drawable.ic_abs_malfunction))
                 absWarningJob = blinkImage(ivAbsState)
+                ivAbsState.alpha = 1f
             }
         }
     }
@@ -1733,6 +1735,7 @@ class MainActivity : AppCompatActivity() {
                 ivTraction.setImageDrawable(getDrawable(this, R.drawable.ic_mtc))
                 tractionBlinkJob = blinkImage(ivTraction)
                 ivTraction.tag = R.drawable.ic_mtc
+                ivTraction.alpha = 1f
             }
             4->{
                 ivTraction.setImageDrawable(getDrawable(this, R.drawable.ic_mtc_malfunction))
@@ -1785,14 +1788,13 @@ class MainActivity : AppCompatActivity() {
                     ivTraction.tag = R.drawable.ic_mtc_3_white
                 }
             }
-
-            else -> ivTraction.visibility = View.INVISIBLE
         }
     }
 
     private fun stopTractionBlinking() {
         tractionBlinkJob?.cancel()
         tractionBlinkJob = null
+        ivTraction.alpha = 1f
     }
 
     private fun handleHazardLamp(hazard: Boolean) {

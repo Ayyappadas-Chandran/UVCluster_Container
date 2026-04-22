@@ -14,6 +14,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
+import com.suprajit.uvcluster.domain.dataModel.vcuData.VcuInfoMsg
 import com.suprajit.uvcluster.ui.viewModel.CarViewModel
 import com.suprajit.uvcluster.ui.viewModel.SharedViewModel
 import com.suprajit.uvcluster.utils.Utilities.ARG_DASH_CAM
@@ -132,6 +133,12 @@ class ParkAssistantFragment : Fragment() {
                         updateVehicleValue(vehicleValue)
                     }
                 }
+                launch {
+                    carViewModel.vcuInfoMsg.collect { vcuInfo ->
+                        d("DashboardFragment", "vcuInfo:$vcuInfo")
+                        updateVcuMsg(vcuInfo)
+                    }
+                }
             }
         }
     }
@@ -161,6 +168,19 @@ class ParkAssistantFragment : Fragment() {
         tvSpeed.text = "$displaySpeed $unitText"
         tvSpeedReverse.text = "$displaySpeed $unitText"
 
+    }
+    private fun updateVcuMsg(vcuInfoMsg: VcuInfoMsg) {
+        if (vcuInfoMsg.speed.isNotEmpty()) {
+            val isMiles =
+                sharedViewModel.distanceUnit.equals("miles", ignoreCase = true)
+            val unitText = if (isMiles) "mph" else "km/h"
+
+            if (vcuInfoMsg.speed[0].toInt() == 0)
+            {
+                tvSpeed.text = "000 $unitText"
+                tvSpeedReverse.text = "000 $unitText"
+            }
+        }
     }
 
 }

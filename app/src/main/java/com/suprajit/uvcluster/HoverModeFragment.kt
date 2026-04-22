@@ -212,6 +212,21 @@ class HoverModeFragment : Fragment() {
 
         tvOdo.text = "$displayOdo $unitLabel"
 
+        if (vcuInfoMsg.speed.isNotEmpty()) {
+            if (vcuInfoMsg.speed[0].toInt() == 0)
+            {
+                speed = 0
+                if (isMotorArmed)
+                {
+                    tvSpeed.text = "000"
+                }
+                else
+                {
+                    tvSpeed.text = "- - -"
+                }
+            }
+        }
+
     }
     private fun addSwipeGesture(rootView: View?) {
         gestureDetector = GestureDetector(

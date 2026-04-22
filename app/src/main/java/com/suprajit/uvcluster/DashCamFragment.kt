@@ -182,6 +182,17 @@ class DashCamFragment : Fragment() {
             tvOdo.text = finalOdo.toString()
             tvRange.text = finalRange.toString()
         }
+        if (vcuInfoMsg.speed.isNotEmpty()) {
+            val isMiles =
+                sharedViewModel.distanceUnit.equals("miles", ignoreCase = true)
+            val unitText = if (isMiles) "mph" else "km/h"
+
+            if (vcuInfoMsg.speed[0].toInt() == 0)
+            {
+                tvSpeed.text = "000"
+                //tvSpeedUnit.text = unitText
+            }
+        }
     }
 
     private fun updateVehicleValue(value: FloatArray = floatArrayOf()) {

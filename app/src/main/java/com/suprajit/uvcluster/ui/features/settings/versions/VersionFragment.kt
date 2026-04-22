@@ -32,7 +32,9 @@ import android.widget.Button
 import android.widget.EditText
 import androidx.navigation.fragment.findNavController
 import com.suprajit.uvcluster.BugReportHelper
+import com.suprajit.uvcluster.data.repository.SharedPreferenceRepoImpl
 import com.suprajit.uvcluster.domain.ennumerate.ButtonNavigation
+import com.suprajit.uvcluster.domain.manager.PreferenceManager
 import com.suprajit.uvcluster.utils.Utilities
 import java.io.File
 
@@ -67,6 +69,9 @@ class fragment_versions : Fragment() {
     private lateinit var setTime: Button
     private val TAG = "TimeSync"
     private lateinit var tvTitle: TextView
+    private lateinit var preferenceManager: PreferenceManager
+    private var isHover=false
+    private var isCHarging = false
 
 
     /*private val carViewModel by viewModels<CarViewModel> {
@@ -141,6 +146,12 @@ class fragment_versions : Fragment() {
             helper.startBugReport(requireContext())
         }
 
+        preferenceManager = PreferenceManager(SharedPreferenceRepoImpl(requireContext()))
+        d("ChargerPrefs", "=== RESTORED ON BOOT ===")
+        d("ChargerPrefs", "chargerFwExt     = ${preferenceManager.chargerFwExt.ifBlank { "EMPTY" }}")
+        d("ChargerPrefs", "chargerFwObc     = ${preferenceManager.chargerFwObc.ifBlank { "EMPTY" }}")
+        d("ChargerPrefs", "chargerVersion   = ${preferenceManager.chargerVersion.ifBlank { "EMPTY" }}")
+        d("ChargerPrefs", "chargerTypeValue = ${preferenceManager.chargerTypeValue.ifBlank { "EMPTY" }}")
         initObserver()
         //setTimeAndDate()
     }
@@ -201,7 +212,12 @@ class fragment_versions : Fragment() {
                     carViewModel.swiftButton.collect { swiftButton ->
                         val button = Utilities.getButtonState(swiftButton)
                         if (ButtonNavigation.Enter == button) {
-                            findNavController().navigate(R.id.action_versionFragment_to_dashBoardFragment)
+                            val destination = when {
+                                isHover -> R.id.hoverModeFragment
+                                isCHarging -> R.id.chargingFragment
+                                else -> R.id.dashboardFragment
+                            }
+                            findNavController().navigate(destination)
                         }
                         if (ButtonNavigation.Left == button) {
                             findNavController().navigate(R.id.action_versionFragment_to_debugFragment)
@@ -223,6 +239,8 @@ class fragment_versions : Fragment() {
 
     private fun handleTellTales(tellTales: TellTales) {
         val soc = tellTales.batterySoc
+        isHover= tellTales.modeHover==1
+        isCHarging = tellTales.charger == 1 || tellTales.charger == 2
         d("UI Update handleTellTales", "batterySoc soc: $soc, ${viewModel.socLimit}")
         tvBatteryPercent.text = "$soc%"
     }
@@ -248,15 +266,17 @@ class fragment_versions : Fragment() {
                 54, 32, 50, 48, 58, 48, 48, 58, 53, 48, 0, 0, 0, 0, 0, 0, 0, 0,
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
             ),
-            mcSwVersion  = byteArrayOf(5, 12, 124, 2, 1, 0, -1, -1, 0, 0),
-            mcHwVersion  = byteArrayOf(-60, -82, -77, -28, 0, 0, 0, 0, 0, 0, 0),
-            padding      = byteArrayOf(0, 0, 0),
-            mcProductCode    = 1296248882u,
-            mcDcfChecksum    = 0u,
-            displayFw    = byteArrayOf(1, 5),
-            chgFw        = byteArrayOf(1, 50, -114, 0),
-            chargerType  = 205u,
-            extChgFwVersion = 106u
+            mcSwVersion = byteArrayOf(5, 12, 124, 2, 1, 0, -1, -1, 0, 0),
+            mcHwVersion = byteArrayOf(-60, -82, -77, -28, 0, 0, 0, 0, 0, 0, 0),
+            padding = byteArrayOf(0, 0, 0),
+            mcProductCode = 1296248882u,
+            mcDcfChecksum = 0u,
+            displayFw = byteArrayOf(1, 5),
+            //chgFw = byteArrayOf(1, 90, -114, 0),
+            //chargerType = 202u,
+            chgFw = byteArrayOf(0, 0, 0, 0),
+            chargerType = 0U,
+            extChgFwVersion = 0u
         )*/
         val mcVersion = imxFwVersionMsg.mcSwVersion
         val version = mcVersion
@@ -280,21 +300,25 @@ class fragment_versions : Fragment() {
                 .trim()
                 .ifBlank { "-" }
         }
-        tvRh850Value.text=imxFwVersionMsg.displayFw.toRH850VersionString()
+        tvRh850Value.text = imxFwVersionMsg.displayFw.toRH850VersionString()
 
         d("UI Update", "version: $mcVersion, ${viewModel.socLimit}")
-        /*        tvMcSwValue.text = "$version"
-                tvBmsFwValue.text = "$bmsVersion"
-                tvMcPrdValue.text = "$mcProCode"
-                tvVcuFwValue.text = "$vcuVersion"
-                tvDispFwVersion.text = "$firmwareVersion"*/
 
         tvMcSwValue.text =
             imxFwVersionMsg.mcSwVersion.toMcVersionString()
         tvBmsFwValue.text = imxFwVersionMsg.bmsFw.toNullTerminatedString().ifBlank { "—" }
         /*tvMcPrdValue.text     = imxFwVersionMsg.displayFw.toNullTerminatedString().ifBlank { "—" }*/
         tvVcuFwValue.text = imxFwVersionMsg.vcuFw.toTrimmedAscii()
-        tvChargerFwExtValue.text = (imxFwVersionMsg.extChgFwVersion.toDouble() / 100).toString()
+        val extFwRaw = imxFwVersionMsg.extChgFwVersion.toInt()
+        if (extFwRaw != 0) {
+            val extFwStr = (extFwRaw.toDouble() / 100).toString()
+            tvChargerFwExtValue.text = extFwStr
+            preferenceManager.saveChargerFwExt(extFwStr)
+            d("ChargerPrefs", "SAVED chargerFwExt = $extFwStr")
+        }
+        else {
+            Log.d("ChargerPrefs", "SKIPPED chargerFwExt — extFwRaw is 0")
+        }
 
 
         val hw = imxFwVersionMsg.mcHwVersion
@@ -344,55 +368,93 @@ class fragment_versions : Fragment() {
 
         tvMcPrdValue.text = mcProductString
 
-        when (imxFwVersionMsg.chargerType.toInt()) {
+        val chargerType = imxFwVersionMsg.chargerType.toInt()
+        val fw = imxFwVersionMsg.chgFw
 
-            203 -> {
-                val fw = imxFwVersionMsg.chgFw
-                if (fw.size >= 2) {
-                    val fwStr =
-                        "${fw[0].toUByte().toInt()}.${fw[1].toUByte().toInt()}"
-                    tvChargerFwObcValue.text = fwStr
-                    tvChargerVersion.text = fwStr
-                } else {
-                    tvChargerFwObcValue.text = "-"
-                    tvChargerVersion.text = "-"
-                }
-                tvChargerTypeValue.text = "OBC"
-                tvDcpOrObc.text = "OBC"
-            }
-
-            204, 205, 206, 207 -> {
-                val fw = imxFwVersionMsg.chgFw
-                if (fw.size >= 4) {
-                    val b0 = fw[0].toUByte().toInt()
-                    val b1 = fw[1].toUByte().toInt()
-                    val b2 = fw[3].toUByte().toInt()
-                    val b3 = fw[2].toUByte().toInt()
-
-                    val fwStr =
-                        if (b0 <= 1 && b1 <= 42) {
-                            "$b0.$b1"
-                        } else {
-                            "$b0.$b1.$b3.$b2"
-                        }
-
-                    tvChargerFwObcValue.text = fwStr
-                    tvChargerVersion.text = fwStr
-                } else {
-                    tvChargerFwObcValue.text = "-"
-                    tvChargerVersion.text = "-"
-                }
-
-                tvChargerTypeValue.text = "DCP"
-                tvDcpOrObc.text = "DCP"
-            }
-
-            else -> {
-                tvChargerTypeValue.text = "-"
-                tvChargerFwObcValue.text = "-"
-            }
+        val chargerName = when (chargerType) {
+            202 -> "OBC"
+            203 -> "BOOST"
+            204 -> "X-OBC"
+            205 -> "STATION"
+            206 -> "STANDARD"
+            else -> null
         }
 
+        if (chargerName != null) {
+            // Live data is valid — check if charger name actually changed
+            val savedChargerName = preferenceManager.chargerTypeValue
+
+            if (chargerName != savedChargerName) {
+                // Charger type changed, update name
+                tvChargerTypeValue.text = chargerName
+                tvDcpOrObc.text = "DCP_VER" //Dcp version only we are showing
+                preferenceManager.saveChargerTypeValue(chargerName)
+                d("ChargerPrefs", "SAVED chargerTypeValue = $chargerName (was: $savedChargerName)")
+            } else {
+                // Same charger type, still restore name from prefs (in case of reboot)
+                tvChargerTypeValue.text = preferenceManager.chargerTypeValue.ifBlank { "—" }
+                d("ChargerPrefs", "SAME charger type ($chargerName) — restored from prefs")
+            }
+
+            // FW version — only update if non-zero bytes
+            var obcFw: String? = null
+            var dcpFw: String? = null
+
+            when (chargerType) {
+                202 -> {
+                    if (fw.size >= 2) {
+                        val b0 = fw[0].toUByte().toInt()
+                        val b1 = fw[1].toUByte().toInt()
+                        if (b0 != 0 || b1 != 0) {
+                            obcFw = "$b0.$b1"
+                        }
+                    }
+                }
+                203, 204, 205, 206 -> {
+                    if (fw.size >= 4) {
+                        val b0 = fw[0].toUByte().toInt()
+                        val b1 = fw[1].toUByte().toInt()
+                        val b2 = fw[3].toUByte().toInt()
+                        val b3 = fw[2].toUByte().toInt()
+                        if (b0 != 0 || b1 != 0) {
+                            dcpFw = if (b0 <= 1 && b1 <= 42) "$b0.$b1" else "$b0.$b1.$b3.$b2"
+                        }
+                    }
+                }
+            }
+
+            if (obcFw != null) {
+                // Valid fw version received — save and show
+                tvChargerFwObcValue.text = obcFw
+                preferenceManager.saveChargerFwObc(obcFw)
+                d("ChargerPrefs", "SAVED chargerFwObc/chargerVersion = $obcFw")
+            } else {
+                // fw bytes are zero even though charger is connected — show last saved
+                tvChargerFwObcValue.text = preferenceManager.chargerFwObc.ifBlank { "—" }
+                d("ChargerPrefs", "SKIPPED fw save — bytes are zero, restored: ${preferenceManager.chargerFwObc.ifBlank { "EMPTY" }}")
+            }
+            if (dcpFw != null)
+            {
+                tvChargerVersion.text = dcpFw
+                preferenceManager.saveChargerVersion(dcpFw)
+            }
+            else
+            {
+                tvChargerVersion.text = preferenceManager.chargerVersion.ifBlank { "—" }
+                d("ChargerPrefs", "SKIPPED fw save — bytes are zero, chargerVersion restored: ${preferenceManager.chargerVersion.ifBlank { "EMPTY" }}")
+            }
+
+        } else {
+            // chargerType = 0 → not connected, restore all from prefs
+            tvChargerFwExtValue.text = preferenceManager.chargerFwExt.ifBlank { "—" }
+            tvChargerFwObcValue.text = preferenceManager.chargerFwObc.ifBlank { "—" }
+            tvChargerVersion.text = preferenceManager.chargerVersion.ifBlank { "—" }
+            tvChargerTypeValue.text = preferenceManager.chargerTypeValue.ifBlank { "—" }
+            d("ChargerPrefs", "  chargerFwExt     = ${preferenceManager.chargerFwExt.ifBlank { "EMPTY" }}")
+            d("ChargerPrefs", "  chargerFwObc     = ${preferenceManager.chargerFwObc.ifBlank { "EMPTY" }}")
+            d("ChargerPrefs", "  chargerVersion   = ${preferenceManager.chargerVersion.ifBlank { "EMPTY" }}")
+            d("ChargerPrefs", "  chargerTypeValue = ${preferenceManager.chargerTypeValue.ifBlank { "EMPTY" }}")
+        }
     }
 
     private fun handleChargeCtx(chargerCtxObc: ChargerCtxObc) {
@@ -422,8 +484,28 @@ class fragment_versions : Fragment() {
             chargerRangeValue = 0u
         )*/
         val chargeType = chargerCtxObc.chargerType
-        val chargeVersion = chargerCtxObc.chargerFwMajorNum
+        val chargeVersionMajor = chargerCtxObc.chargerFwMajorNum.toInt()
+        val chargeVersionMinor = chargerCtxObc.chargerFwMinorNum.toInt()
 
+        d("ChargerPrefs", "handleChargeCtx — chargeType=$chargeType, major=$chargeVersionMajor, minor=$chargeVersionMinor")
+        if (chargerCtxObc.chargerConnectionState.toInt() == 1) {
+            if (chargeVersionMajor != 0 || chargeVersionMinor != 0) {
+                val fwStr = "$chargeVersionMajor.$chargeVersionMinor"
+                tvChargerFwObcValue.text = fwStr
+                preferenceManager.saveChargerFwObc(fwStr)
+                tvChargerTypeValue.text = "OBC"
+                preferenceManager.saveChargerTypeValue("OBC")
+                d("ChargerPrefs", "handleChargeCtx SAVED chargerFwObc = $fwStr")
+            } else {
+                // Zero values — charger disconnected, restore from prefs
+                val saved = preferenceManager.chargerFwObc.ifBlank { "—" }
+                tvChargerFwObcValue.text = saved
+                d(
+                    "ChargerPrefs",
+                    "handleChargeCtx SKIPPED — zero values, restored chargerFwObc = $saved"
+                )
+            }
+        }
 
         d("UI Update", "version: $chargeType, ${viewModel.socLimit}")
     }

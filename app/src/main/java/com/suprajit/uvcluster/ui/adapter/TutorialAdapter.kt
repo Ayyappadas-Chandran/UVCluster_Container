@@ -64,13 +64,13 @@ class TutorialAdapter(
             val context = itemView.context
             tvVideoName.text = item.videoName
             tvVideoTime.text = item.videoDuration
-            itemView.setOnSoundClickListener(context) {
+            /*itemView.setOnSoundClickListener(context) {
                 isClicked = true
                 val previousPosition = selectedVideoPosition
                 selectedVideoPosition = position
                 notifyItemChanged(previousPosition)
                 notifyItemChanged(selectedVideoPosition)
-            }
+            }*/
             val isSelected = selectedVideoPosition == position
             updateSelectionState(isSelected, position, context)
         }
