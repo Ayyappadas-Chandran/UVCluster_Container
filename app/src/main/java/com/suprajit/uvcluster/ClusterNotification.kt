@@ -206,6 +206,7 @@ object ClusterNotification {
         card.addView(root)
         return card
     }
+    
 
     private fun cleanup() {
         Log.e(TAG, "[UI] Cleaning up View.")

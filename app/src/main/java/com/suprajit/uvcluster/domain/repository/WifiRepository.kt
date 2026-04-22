@@ -43,9 +43,12 @@ interface WifiRepository {
     fun getCurrentSignalLevel(): Int
 
     fun connectToSavedNetwork(ssid: String)
-    
+
+    fun connectedSSID(callback: (String?) -> Unit)
+
     fun reconnectRequestSSID(callback: (String?) -> Unit)
 
 }
+
 
 

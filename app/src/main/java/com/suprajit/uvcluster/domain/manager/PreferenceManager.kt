@@ -137,6 +137,13 @@ class PreferenceManager(val sharedPreferenceRepository: SharedPreferenceReposito
 
     val trips
         get() = sharedPreferenceRepository.getPref(PREF_TRIPS, 1)
+    
+    val vinNumber
+        get() = sharedPreferenceRepository.getPref(PREF_VIN_VALUE, "LOCALVIN00000001")
+
+    val imeiNumber
+        get() = sharedPreferenceRepository.getPref(PREF_IMEI_NUMBER, "000000000000001")
+
     val chargerFwExt: String
         get() = sharedPreferenceRepository.getPref(PREF_CHARGER_FW_EXT, "")
 
@@ -147,7 +154,15 @@ class PreferenceManager(val sharedPreferenceRepository: SharedPreferenceReposito
         get() = sharedPreferenceRepository.getPref(PREF_CHARGER_VERSION, "")
 
     val chargerTypeValue: String
-        get() = sharedPreferenceRepository.getPref(PREF_CHARGER_TYPE_VALUE, "")
+        get() = sharedPreferenceRepository.getPref(PREF_CHARGER_TYPE_VALUE, "")    
+
+    fun saveIemiNumber(imeiNumber: String) {
+        sharedPreferenceRepository.savePref(PREF_IMEI_NUMBER, imeiNumber)
+    }
+
+    fun saveVinNumber(vinNumber: String) {
+        sharedPreferenceRepository.savePref(PREF_VIN_VALUE, vinNumber)
+    }
 
     fun saveHaptic(isEnabled: Boolean) {
         sharedPreferenceRepository.savePref(PREF_HAPTIC, isEnabled)
@@ -343,12 +358,14 @@ class PreferenceManager(val sharedPreferenceRepository: SharedPreferenceReposito
         private const val PREF_OTA_OLD_BUILD = "pref_ota_old_build"
         private const val PREF_BALLISTIC_PLUS = "pref_surge_alert"
         private const val PREF_TRIPS = "pref_trips"
-        private const val PREF_CHARGER_FW_EXT     = "pref_charger_fw_ext"
+
+	 private const val PREF_VIN_VALUE = "pref_vin_value"
+        private const val PREF_IMEI_NUMBER = "imeiNumber"
+	
+	private const val PREF_CHARGER_FW_EXT     = "pref_charger_fw_ext"
         private const val PREF_CHARGER_FW_OBC     = "pref_charger_fw_obc"
         private const val PREF_CHARGER_VERSION    = "pref_charger_version"
         private const val PREF_CHARGER_TYPE_VALUE = "pref_charger_type_value"
-
-
 
     }
 }

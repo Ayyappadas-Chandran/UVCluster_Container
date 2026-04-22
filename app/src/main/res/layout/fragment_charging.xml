@@ -49,13 +49,14 @@
             android:id="@+id/tvTurnOffKey"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="37dp"
-            android:text="@string/turn_off_key"
+            android:layout_marginTop="48dp"
+            android:text="To start charging"
             android:textAllCaps="true"
-            android:textColor="@color/white"
+            android:textColor="@color/lockdownGrey"
             android:textFontWeight="500"
-            android:textSize="22sp"
+            android:textSize="20sp"
             app:layout_constraintEnd_toEndOf="@id/ivKey"
+            app:layout_constraintHorizontal_bias="0.495"
             app:layout_constraintStart_toStartOf="@id/ivKey"
             app:layout_constraintTop_toBottomOf="@id/ivKey" />
 
@@ -63,10 +64,10 @@
             android:id="@+id/tvStartCharging"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="To start charging"
-            android:textColor="@color/lockdownGrey"
+            android:text="TURN OFF KEY"
+            android:textColor="@color/white"
             android:textFontWeight="400"
-            android:textSize="16sp"
+            android:textSize="20sp"
             app:layout_constraintEnd_toEndOf="@id/tvTurnOffKey"
             app:layout_constraintStart_toStartOf="@id/tvTurnOffKey"
             app:layout_constraintTop_toBottomOf="@id/tvTurnOffKey" />
@@ -96,9 +97,9 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="37dp"
-            android:text="Unplug Charger"
+            android:text="To resume riding"
             android:textAllCaps="true"
-            android:textColor="@color/white"
+            android:textColor="@color/lockdownGrey"
             android:textFontWeight="500"
             android:textSize="20sp"
             app:layout_constraintEnd_toEndOf="@id/ivPlug"
@@ -109,9 +110,9 @@
             android:id="@+id/tvResumeRiding"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="To resume riding"
-            android:textColor="@color/lockdownGrey"
-            android:textSize="16sp"
+            android:text="UNPLUG CHARGER"
+            android:textColor="@color/white"
+            android:textSize="20sp"
             app:layout_constraintEnd_toEndOf="@id/ivPlug"
             app:layout_constraintStart_toStartOf="@id/ivPlug"
             app:layout_constraintTop_toBottomOf="@id/tvPlugCharger" />
@@ -259,4 +260,5 @@
     </androidx.constraintlayout.widget.ConstraintLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
+
 

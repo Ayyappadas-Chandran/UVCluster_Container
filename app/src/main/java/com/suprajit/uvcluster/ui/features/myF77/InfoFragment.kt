@@ -27,6 +27,15 @@ import com.suprajit.uvcluster.domain.dataModel.vcuData.VcuInfoMsg
 import com.suprajit.uvcluster.ui.viewModel.SharedViewModel
 import com.suprajit.uvcluster.utils.Utilities.applyMinMax
 import kotlin.math.roundToInt
+import android.view.GestureDetector
+import android.view.MotionEvent
+import android.widget.EditText
+import androidx.navigation.NavController
+import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputMethodManager
+import androidx.core.widget.addTextChangedListener
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 
 class InfoFragment : Fragment() {
 
@@ -35,8 +44,15 @@ class InfoFragment : Fragment() {
     private lateinit var unit: String
     private lateinit var tvOdoMeter: TextView
     private lateinit var tvOdoMeterUnit: TextView
+    private lateinit var ivBikeImage: ImageView
+    private var navController: NavController? = null
+
     private val carViewModel by activityViewModels<CarViewModel> { ViewModelFactory(context = requireContext()) }
     private val sharedViewModel by activityViewModels<SharedViewModel> { ViewModelFactory(context = requireContext()) }
+
+    private lateinit var vinTextView: TextView
+    private lateinit var vinEditText: EditText
+    private var typingJob: Job? = null	
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -52,6 +68,7 @@ class InfoFragment : Fragment() {
         initObserver()
         initClickListener()
         tvImei.text=getFirstImei()
+        vinTextView.text = sharedViewModel.vinTextValue
 
     }
 
@@ -106,6 +123,9 @@ class InfoFragment : Fragment() {
         tvOdoMeter=view.findViewById(R.id.tvOdoMeter)
         tvOdoMeterUnit=view.findViewById(R.id.tvOdoMeterUnit)
         unit = sharedViewModel.distanceUnit
+	    vinTextView = view.findViewById(R.id.tvVin)
+        vinEditText = view.findViewById(R.id.etVin)
+        ivBikeImage = view.findViewById(R.id.ivBikeImage)
 
     }
 
@@ -116,7 +136,87 @@ class InfoFragment : Fragment() {
         ivBack.setOnSoundClickListener(requireContext()) {
             findNavController().navigateUp()
         }
+	val gestureDetector = GestureDetector(
+            requireContext(),
+            object : GestureDetector.SimpleOnGestureListener() {
+                override fun onDoubleTap(e: MotionEvent): Boolean {
+                    vinEditText.setText(vinTextView.text)
+                    vinTextView.visibility = View.GONE
+                    vinEditText.visibility = View.VISIBLE
+                    vinEditText.requestFocus()
+                    vinEditText.setSelection(vinEditText.text.length)
+                    return true
+                }
+            })
+
+        vinTextView.setOnTouchListener { _, event ->
+            gestureDetector.onTouchEvent(event)
+            true
+        }
+
+        // ✅ Detect typing + debounce (5 seconds)
+        vinEditText.addTextChangedListener {
+            typingJob?.cancel()
+
+            typingJob = lifecycleScope.launch {
+                delay(5000) // ⏳ 5 seconds idle
+                handleVinDone()
+            }
+        }
+        
+
+        val bikeGestureDetector = GestureDetector(
+            requireContext(),
+            object : GestureDetector.SimpleOnGestureListener() {
+                override fun onDoubleTap(e: MotionEvent): Boolean {
+                    d("InfoFragment", "Thermal runaway")
+                    sendThermalRunawayToVcu()
+
+                    return true
+                }
+            }
+        )
+
+        ivBikeImage.setOnTouchListener { _, event ->
+            bikeGestureDetector.onTouchEvent(event)
+            true
+        }
+
     }
+    private fun handleVinDone() {
+        val vin = vinEditText.text.toString().trim()
+
+        when {
+            vin.isEmpty() -> {
+                vinEditText.error = "VIN cannot be empty"
+            }
+
+            vin.length != 17 -> {
+                vinEditText.error = "VIN must be exactly 17 characters"
+            }
+
+            else -> {
+                // ✅ Save
+                sharedViewModel.saveVimNumber(vin)
+
+                // ✅ Update UI
+                vinTextView.text = vin
+
+                // ✅ Switch back
+                vinEditText.visibility = View.GONE
+                vinTextView.visibility = View.VISIBLE
+
+                // ✅ Hide keyboard
+                hideKeyboard()
+            }
+        }
+    }
+    private fun hideKeyboard() {
+        val imm = requireContext()
+            .getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+        imm.hideSoftInputFromWindow(vinEditText.windowToken, 0)
+    }
+
     fun updateVcuMsg(vcuInfoMsg: VcuInfoMsg) {
 
 
@@ -138,7 +238,17 @@ class InfoFragment : Fragment() {
 
 
     }
+    private fun sendThermalRunawayToVcu() {
+        d("InfoFragment", "Sent Thermal runaway")
+        val value=1.toByte()
+        val packet = byteArrayOf(value)
+        carViewModel.sendByteArrayProperty(0x217002F0, packet)
+        findNavController().navigate(R.id.thermalRunawayFragment)
+
+    }
+
 
 }
+
 
 

@@ -28,6 +28,8 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import android.util.Log
+import android.view.GestureDetector
+import android.view.MotionEvent
 import android.widget.Button
 import android.widget.EditText
 import androidx.navigation.fragment.findNavController
@@ -69,10 +71,10 @@ class fragment_versions : Fragment() {
     private lateinit var setTime: Button
     private val TAG = "TimeSync"
     private lateinit var tvTitle: TextView
+    private lateinit var topBar: View
     private lateinit var preferenceManager: PreferenceManager
     private var isHover=false
     private var isCHarging = false
-
 
     /*private val carViewModel by viewModels<CarViewModel> {
         ViewModelFactory(requireContext())
@@ -83,6 +85,10 @@ class fragment_versions : Fragment() {
 
     private val viewModel by viewModels<SharedViewModel> {
         ViewModelFactory(requireContext())
+    }
+
+    private val sharedViewModel by activityViewModels<SharedViewModel> {
+        ViewModelFactory(context = requireContext())
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -124,8 +130,9 @@ class fragment_versions : Fragment() {
         textViewDate = view.findViewById(R.id.textViewDate)
         textViewImei = view.findViewById(R.id.textViewImei)
         tvRh850Value=view.findViewById(R.id.tvRh850Value)
-
+        topBar = view.findViewById(R.id.topBar)
         textViewImei.text = "IMEI : " + getImei()
+	saveImeiNumber()	
 
         enterTime = view.findViewById(R.id.enterTime)
         setTime = view.findViewById(R.id.setTime)
@@ -146,13 +153,17 @@ class fragment_versions : Fragment() {
             helper.startBugReport(requireContext())
         }
 
-        preferenceManager = PreferenceManager(SharedPreferenceRepoImpl(requireContext()))
+	preferenceManager = PreferenceManager((SharedPreferenceRepoImpl(requireContext()))
+        )
+
         d("ChargerPrefs", "=== RESTORED ON BOOT ===")
         d("ChargerPrefs", "chargerFwExt     = ${preferenceManager.chargerFwExt.ifBlank { "EMPTY" }}")
         d("ChargerPrefs", "chargerFwObc     = ${preferenceManager.chargerFwObc.ifBlank { "EMPTY" }}")
         d("ChargerPrefs", "chargerVersion   = ${preferenceManager.chargerVersion.ifBlank { "EMPTY" }}")
         d("ChargerPrefs", "chargerTypeValue = ${preferenceManager.chargerTypeValue.ifBlank { "EMPTY" }}")
+
         initObserver()
+        initClickListioner()
         //setTimeAndDate()
     }
 
@@ -179,6 +190,35 @@ class fragment_versions : Fragment() {
         textViewTime.text =  formattedTime
         textViewDate.text =  formattedDate
     }*/
+
+     private fun initClickListioner(){
+
+        val gestureDetector = GestureDetector(
+            requireContext(),
+            object : GestureDetector.SimpleOnGestureListener() {
+
+                override fun onDown(e: MotionEvent): Boolean {
+                    return true
+                }
+
+                override fun onDoubleTap(e: MotionEvent): Boolean {
+                    d("EmergencyFragment", "Double tap detected")
+                    findNavController().navigate(R.id.emergencyFragment)
+                    return true
+                }
+            }
+        )
+
+        topBar.apply {
+            isClickable = true
+            isFocusable = true
+
+            setOnTouchListener { _, event ->
+                gestureDetector.onTouchEvent(event)
+                false 
+            }
+        }
+    }
 
     private fun initObserver() {
         viewLifecycleOwner.lifecycleScope.launch {
@@ -239,7 +279,7 @@ class fragment_versions : Fragment() {
 
     private fun handleTellTales(tellTales: TellTales) {
         val soc = tellTales.batterySoc
-        isHover= tellTales.modeHover==1
+	isHover= tellTales.modeHover==1
         isCHarging = tellTales.charger == 1 || tellTales.charger == 2
         d("UI Update handleTellTales", "batterySoc soc: $soc, ${viewModel.socLimit}")
         tvBatteryPercent.text = "$soc%"
@@ -266,17 +306,15 @@ class fragment_versions : Fragment() {
                 54, 32, 50, 48, 58, 48, 48, 58, 53, 48, 0, 0, 0, 0, 0, 0, 0, 0,
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
             ),
-            mcSwVersion = byteArrayOf(5, 12, 124, 2, 1, 0, -1, -1, 0, 0),
-            mcHwVersion = byteArrayOf(-60, -82, -77, -28, 0, 0, 0, 0, 0, 0, 0),
-            padding = byteArrayOf(0, 0, 0),
-            mcProductCode = 1296248882u,
-            mcDcfChecksum = 0u,
-            displayFw = byteArrayOf(1, 5),
-            //chgFw = byteArrayOf(1, 90, -114, 0),
-            //chargerType = 202u,
-            chgFw = byteArrayOf(0, 0, 0, 0),
-            chargerType = 0U,
-            extChgFwVersion = 0u
+            mcSwVersion  = byteArrayOf(5, 12, 124, 2, 1, 0, -1, -1, 0, 0),
+            mcHwVersion  = byteArrayOf(-60, -82, -77, -28, 0, 0, 0, 0, 0, 0, 0),
+            padding      = byteArrayOf(0, 0, 0),
+            mcProductCode    = 1296248882u,
+            mcDcfChecksum    = 0u,
+            displayFw    = byteArrayOf(1, 5),
+            chgFw        = byteArrayOf(1, 50, -114, 0),
+            chargerType  = 205u,
+            extChgFwVersion = 106u
         )*/
         val mcVersion = imxFwVersionMsg.mcSwVersion
         val version = mcVersion
@@ -300,14 +338,14 @@ class fragment_versions : Fragment() {
                 .trim()
                 .ifBlank { "-" }
         }
-        tvRh850Value.text = imxFwVersionMsg.displayFw.toRH850VersionString()
+        tvRh850Value.text=imxFwVersionMsg.displayFw.toRH850VersionString()
 
         d("UI Update", "version: $mcVersion, ${viewModel.socLimit}")
 
         tvMcSwValue.text =
             imxFwVersionMsg.mcSwVersion.toMcVersionString()
-        tvBmsFwValue.text = imxFwVersionMsg.bmsFw.toNullTerminatedString().ifBlank { "—" }
-        /*tvMcPrdValue.text     = imxFwVersionMsg.displayFw.toNullTerminatedString().ifBlank { "—" }*/
+        tvBmsFwValue.text = imxFwVersionMsg.bmsFw.toNullTerminatedString().ifBlank { "--" }
+        /*tvMcPrdValue.text     = imxFwVersionMsg.displayFw.toNullTerminatedString().ifBlank { "--" }*/
         tvVcuFwValue.text = imxFwVersionMsg.vcuFw.toTrimmedAscii()
         val extFwRaw = imxFwVersionMsg.extChgFwVersion.toInt()
         if (extFwRaw != 0) {
@@ -317,7 +355,7 @@ class fragment_versions : Fragment() {
             d("ChargerPrefs", "SAVED chargerFwExt = $extFwStr")
         }
         else {
-            Log.d("ChargerPrefs", "SKIPPED chargerFwExt — extFwRaw is 0")
+            Log.d("ChargerPrefs", "SKIPPED chargerFwExt -- extFwRaw is 0")
         }
 
 
@@ -368,7 +406,7 @@ class fragment_versions : Fragment() {
 
         tvMcPrdValue.text = mcProductString
 
-        val chargerType = imxFwVersionMsg.chargerType.toInt()
+	val chargerType = imxFwVersionMsg.chargerType.toInt()
         val fw = imxFwVersionMsg.chgFw
 
         val chargerName = when (chargerType) {
@@ -456,7 +494,6 @@ class fragment_versions : Fragment() {
             d("ChargerPrefs", "  chargerTypeValue = ${preferenceManager.chargerTypeValue.ifBlank { "EMPTY" }}")
         }
     }
-
     private fun handleChargeCtx(chargerCtxObc: ChargerCtxObc) {
 
         /*val chargerCtxObc = ChargerCtxObc(
@@ -520,7 +557,12 @@ class fragment_versions : Fragment() {
                 }
             }
     }
-
+    
+       @RequiresPermission("android.permission.READ_PRIVILEGED_PHONE_STATE")
+    private fun saveImeiNumber(){
+        var temp = getImei()
+        viewModel.saveIemiNumber(temp)
+    }
     @RequiresPermission("android.permission.READ_PRIVILEGED_PHONE_STATE")
     private fun getImei(): String {
         return try {

@@ -3,17 +3,24 @@ package com.suprajit.uvcluster
 import android.Manifest
 import android.content.Context
 import android.graphics.SurfaceTexture
+import android.hardware.Camera
 import android.hardware.camera2.CameraCaptureSession
 import android.hardware.camera2.CameraDevice
 import android.hardware.camera2.CameraManager
 import android.hardware.camera2.CameraMetadata
 import android.hardware.camera2.CaptureRequest
 import android.os.Bundle
+import android.util.Log
+import android.view.GestureDetector
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.view.Surface
+import android.view.SurfaceHolder
+import android.view.SurfaceView
 import android.view.TextureView
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.annotation.RequiresPermission
@@ -31,8 +38,9 @@ import com.suprajit.uvcluster.utils.Utilities.ARG_BALLISTIC_PLUS
 import com.suprajit.uvcluster.utils.Utilities.applyMinMax
 import com.suprajit.uvcluster.utils.ViewModelFactory
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
-class DashCamFragment : Fragment() {
+class DashCamFragment : Fragment(), SurfaceHolder.Callback {
     private val carViewModel: CarViewModel by activityViewModels { ViewModelFactory(requireContext()) }
     private val sharedViewModel: SharedViewModel by activityViewModels {
         ViewModelFactory(
@@ -47,6 +55,9 @@ class DashCamFragment : Fragment() {
     private lateinit var tvSpeedBallistic: TextView
     private lateinit var tvRide: TextView
     private lateinit var tvODo: TextView
+    private lateinit var tvSpeedUnit: TextView
+    private lateinit var tvOdoUnit: TextView
+    private lateinit var tvRangeUnit: TextView
     private lateinit var tvFrontBallistic: TextView
     private lateinit var ivRegenLevel1: ImageView
     private lateinit var ivRegenLevel2: ImageView
@@ -57,54 +68,26 @@ class DashCamFragment : Fragment() {
     private lateinit var ivRegenLevel7: ImageView
     private lateinit var ivRegenLevel8: ImageView
     private lateinit var ivRegenLevel9: ImageView
+    private lateinit var cameraPlaceholder: ImageView
     private lateinit var clDashcamWithBallistic: ConstraintLayout
     private lateinit var clDashcamWithoutBallistic: ConstraintLayout
+    private lateinit var ivBack: ImageView
 
 
-    private lateinit var textureView: TextureView
-    private lateinit var cameraManager: CameraManager
-    private var cameraDevice: CameraDevice? = null
-    private var captureSession: CameraCaptureSession? = null
-    private var previewRequestBuilder: CaptureRequest.Builder? = null
+    private lateinit var surfaceView: SurfaceView
+    private lateinit var surfaceHolder: SurfaceHolder
+    private lateinit var cameraInfoText: TextView
+
+    private var unit = ""
+
+    private var camera: Camera? = null
+    private var currentCameraId = Camera.CameraInfo.CAMERA_FACING_FRONT
+
+    private val TAG = "DashCamFragment"
+
+
+
     private var isBallistic = false
-
-    private val stateCallback = object : CameraDevice.StateCallback() {
-        override fun onOpened(camera: CameraDevice) {
-            cameraDevice = camera
-            createPreviewSession()
-        }
-
-        override fun onDisconnected(camera: CameraDevice) {
-            camera.close()
-        }
-
-        override fun onError(camera: CameraDevice, error: Int) {
-            camera.close()
-        }
-    }
-    private val surfaceTextureListener: TextureView.SurfaceTextureListener =
-        object : TextureView.SurfaceTextureListener {
-            @RequiresPermission(Manifest.permission.CAMERA)
-            override fun onSurfaceTextureAvailable(
-                surface: SurfaceTexture,
-                width: Int,
-                height: Int
-            ) {
-                openCamera()
-            }
-
-            override fun onSurfaceTextureDestroyed(surface: SurfaceTexture): Boolean = true
-
-            override fun onSurfaceTextureSizeChanged(
-                surface: SurfaceTexture,
-                width: Int,
-                height: Int
-            ) {
-            }
-
-            override fun onSurfaceTextureUpdated(surface: SurfaceTexture) {}
-
-        }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -118,15 +101,15 @@ class DashCamFragment : Fragment() {
         initObserver()
         initView(view)
         initClickListeners()
-        initCamera()
-        isBallistic = arguments?.getBoolean(ARG_BALLISTIC_PLUS) ?: false
-        if (isBallistic) {
-            clDashcamWithBallistic.visibility = View.VISIBLE
-            clDashcamWithoutBallistic.visibility = View.INVISIBLE
-        } else {
-            clDashcamWithBallistic.visibility = View.INVISIBLE
-            clDashcamWithoutBallistic.visibility = View.VISIBLE
-        }
+
+//        isBallistic = arguments?.getBoolean(ARG_BALLISTIC_PLUS) ?: false
+//        if (isBallistic) {
+//            clDashcamWithBallistic.visibility = View.VISIBLE
+//            clDashcamWithoutBallistic.visibility = View.INVISIBLE
+//        } else {
+        clDashcamWithBallistic.visibility = View.INVISIBLE
+        clDashcamWithoutBallistic.visibility = View.VISIBLE
+//        }
     }
 
     private fun initView(view: View) {
@@ -148,9 +131,62 @@ class DashCamFragment : Fragment() {
         ivRegenLevel7 = view.findViewById(R.id.ivRegenLevel7)
         ivRegenLevel8 = view.findViewById(R.id.ivRegenLevel8)
         ivRegenLevel9 = view.findViewById(R.id.ivRegenLevel9)
+        cameraPlaceholder = view.findViewById(R.id.cameraPlaceholder)
         clDashcamWithBallistic = view.findViewById(R.id.clDashcamWithBallistic)
         clDashcamWithoutBallistic = view.findViewById(R.id.clDashCamWithoutBallistic)
-        textureView = view.findViewById(R.id.textureView)
+
+        tvSpeedUnit = view.findViewById(R.id.tvSpeedUnit)
+        tvOdoUnit = view.findViewById(R.id.tvOdoUnit)
+        tvRangeUnit = view.findViewById(R.id.tvRangeUnit)
+
+
+        surfaceView = view.findViewById(R.id.cameraSurfaceView)
+        surfaceHolder = surfaceView.holder
+        surfaceHolder.addCallback(this)
+
+        cameraInfoText = view.findViewById(R.id.cameraInfoText)
+
+        unit = sharedViewModel.distanceUnit
+        ivBack=view.findViewById(R.id.ivBack)
+
+        val gestureDetector = GestureDetector(
+            requireContext(),
+            object : GestureDetector.SimpleOnGestureListener() {
+                private val SWIPE_THRESHOLD = 100
+                private val SWIPE_VELOCITY_THRESHOLD = 100
+
+                override fun onFling(
+                    e1: MotionEvent?,
+                    e2: MotionEvent,
+                    velocityX: Float,
+                    velocityY: Float
+                ): Boolean {
+                    if (e1 == null || e2 == null) return false
+                    val diffX = e2.x - e1.x
+                    if (Math.abs(diffX) > SWIPE_THRESHOLD && Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
+                        flipCamera()
+                        return true
+                    }
+                    return false
+                }
+
+                override fun onDoubleTap(e: MotionEvent): Boolean {
+                    Log.d(TAG, "User double tapped on SurfaceView at x=${e?.x}, y=${e?.y}")
+                    //findNavController().navigate(R.id.advancedFeaturesFragment)
+                    return true
+                }
+
+            })
+
+        surfaceView.setOnTouchListener { _, event ->
+            gestureDetector.onTouchEvent(event)
+            true
+        }
+
+        cameraPlaceholder.setOnTouchListener { _, event ->
+            gestureDetector.onTouchEvent(event)
+            true
+        }
     }
 
     private fun initObserver() {
@@ -175,14 +211,31 @@ class DashCamFragment : Fragment() {
         val rawRange = vcuInfoMsg.range.toInt()
         val finalOdo = rawOdometer.applyMinMax(sharedViewModel.odoLimit)
         val finalRange = rawRange.applyMinMax(sharedViewModel.rangeLimit)
-        if (isBallistic) {
-            tvODo.text = finalOdo.toString()
-            tvRangeBallistic.text = finalRange.toString()
-        } else {
-            tvOdo.text = finalOdo.toString()
-            tvRange.text = finalRange.toString()
-        }
-        if (vcuInfoMsg.speed.isNotEmpty()) {
+
+        tvOdoUnit.text = unit
+        tvRangeUnit.text = unit
+
+        val displayOdo =
+            if (unit == "miles") {
+                (finalOdo * 0.621371).roundToInt()
+            } else
+                finalOdo
+
+        val displayRange =
+            if (unit == "miles")
+                (finalRange * 0.621371).roundToInt()
+            else
+                finalRange
+
+//        if (isBallistic) {
+//            tvODo.text = displayOdo.toString()
+//            tvRangeBallistic.text = displayRange.toString()
+//        } else {
+        tvOdo.text = displayOdo.toString()
+        tvRange.text = displayRange.toString()
+//        }
+
+	if (vcuInfoMsg.speed.isNotEmpty()) {
             val isMiles =
                 sharedViewModel.distanceUnit.equals("miles", ignoreCase = true)
             val unitText = if (isMiles) "mph" else "km/h"
@@ -190,7 +243,7 @@ class DashCamFragment : Fragment() {
             if (vcuInfoMsg.speed[0].toInt() == 0)
             {
                 tvSpeed.text = "000"
-                //tvSpeedUnit.text = unitText
+                tvSpeedUnit.text = unitText
             }
         }
     }
@@ -200,76 +253,143 @@ class DashCamFragment : Fragment() {
         if (value.size < 4) {
             return
         }
+
         if (::tvSpeed.isInitialized) {
             val rawSpeed = value.getOrNull(0)?.toInt()
-            val finalSpeed = rawSpeed?.applyMinMax(sharedViewModel.speedLimit)
-            if (isBallistic) {
-                tvSpeedBallistic.text = finalSpeed?.let { String.format("%03d", it) } ?: "-"
-            } else {
-                tvSpeed.text = finalSpeed?.let { String.format("%03d", it) } ?: "-"
-            }
+            val finalSpeed = rawSpeed?.applyMinMax(sharedViewModel.speedLimit) ?: 0
+
+            val displaySpeed =
+                if (unit == "miles")
+                    (finalSpeed * 0.621371).roundToInt()
+                else
+                    finalSpeed
+
+            val displaySpeedUnit =
+                if (unit == "miles")
+                    "mph"
+                else
+                    "km/h"
+
+            tvSpeedUnit.text = displaySpeedUnit
+
+//            if (isBallistic) {
+//                tvSpeedBallistic.text = displaySpeed?.let { String.format("%03d", it) } ?: "-"
+//            } else {
+            tvSpeed.text = String.format("%03d", displaySpeed)
+//            }
         }
     }
 
     private fun initClickListeners() {
-        tvSpeed.setOnClickListener { findNavController().navigate(R.id.advancedFeaturesFragment) }
-        tvSpeedBallistic.setOnClickListener { findNavController().navigate(R.id.advancedFeaturesFragment) }
-
+        ivBack.setOnClickListener { findNavController().navigate(R.id.advancedFeaturesFragment) }
     }
 
-    @RequiresPermission(Manifest.permission.CAMERA)
-    private fun openCamera() {
+    private fun updateCameraInfo(cameraId: Int) {
+        val text = if (cameraId == Camera.CameraInfo.CAMERA_FACING_BACK) {
+            "FRONT CAMERA"
+        } else {
+            "REAR CAMERA"
+        }
+        Log.d(TAG, "updateCameraInfo: Current Camera :: $text")
+        cameraInfoText.text = text
+    }
+
+
+    override fun surfaceCreated(holder: SurfaceHolder) {
+        openCamera(currentCameraId)
+    }
+
+    override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
+        if (surfaceHolder.surface == null) return
+
         try {
-            val cameraId = cameraManager.cameraIdList[0]  // First camera
-            cameraManager.openCamera(cameraId, stateCallback, null)
+            camera?.stopPreview()
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e(TAG, "Preview stop failed", e)
+        }
+
+        try {
+            camera?.setPreviewDisplay(surfaceHolder)
+            camera?.startPreview()
+        } catch (e: Exception) {
+            Log.e(TAG, "Preview restart failed", e)
         }
     }
 
-    private fun initCamera() {
-        cameraManager = requireContext().getSystemService(Context.CAMERA_SERVICE) as CameraManager
-        textureView.surfaceTextureListener = surfaceTextureListener
+    override fun surfaceDestroyed(holder: SurfaceHolder) {
+        releaseCamera()
     }
 
-    private fun createPreviewSession() {
-        val texture = textureView.surfaceTexture!!
-        texture.setDefaultBufferSize(1920, 1080)
+    private fun openCamera(cameraId: Int) {
+        releaseCamera()
 
-        val surface = Surface(texture)
+        val id = getCameraIdForFacing(cameraId)
+        if (id == -1) {
+            showCameraPlaceholder(cameraId)
+            return
+        }
 
-        previewRequestBuilder =
-            cameraDevice!!.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW)
-
-        previewRequestBuilder!!.addTarget(surface)
-
-        cameraDevice!!.createCaptureSession(
-            listOf(surface),
-            object : CameraCaptureSession.StateCallback() {
-                override fun onConfigured(session: CameraCaptureSession) {
-                    captureSession = session
-                    previewRequestBuilder!!.set(
-                        CaptureRequest.CONTROL_MODE,
-                        CameraMetadata.CONTROL_MODE_AUTO
-                    )
-
-                    session.setRepeatingRequest(
-                        previewRequestBuilder!!.build(),
-                        null,
-                        null
-                    )
-                }
-
-                override fun onConfigureFailed(session: CameraCaptureSession) {}
-            },
-            null
-        )
+        try {
+            camera = Camera.open(cameraId)
+            camera?.setPreviewDisplay(surfaceHolder)
+            camera?.startPreview()
+            showCameraPreview()
+            updateCameraInfo(cameraId)
+        } catch (e: Exception) {
+            Log.d("openCamera", "Error opening camera", e)
+        }
     }
 
-    override fun onDestroyView() {
-        super.onDestroyView()
-        captureSession?.close()
-        cameraDevice?.close()
+    fun showCameraPlaceholder(cameraId: Int){
+        updateCameraInfo(cameraId)
+        cameraPlaceholder.visibility = View.VISIBLE
+        surfaceView.visibility = View.GONE
+    }
+
+    fun showCameraPreview(){
+        surfaceView.visibility = View.VISIBLE
+        cameraPlaceholder.visibility = View.GONE
+    }
+
+    private fun getCameraIdForFacing(facing: Int): Int {
+        val numberOfCameras = Camera.getNumberOfCameras()
+        val info = Camera.CameraInfo()
+        for (id in 0 until numberOfCameras) {
+            Camera.getCameraInfo(id, info)
+            if (info.facing == facing) {
+                return id
+            }
+        }
+        return -1 // No camera found for this facing
+    }
+
+
+    private fun flipCamera() {
+        currentCameraId = if (currentCameraId == Camera.CameraInfo.CAMERA_FACING_BACK) {
+            Camera.CameraInfo.CAMERA_FACING_FRONT
+        } else {
+            Camera.CameraInfo.CAMERA_FACING_BACK
+        }
+        openCamera(currentCameraId)
+    }
+
+    private fun releaseCamera() {
+        try {
+            camera?.stopPreview()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error stopping preview", e)
+        }
+        camera?.release()
+        camera = null
+    }
+
+    override fun onPause() {
+        super.onPause()
+        releaseCamera()
+    }
+
+    override fun onResume() {
+        super.onResume()
     }
 
 }

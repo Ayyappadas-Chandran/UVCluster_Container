@@ -28,6 +28,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
+import com.suprajit.uvcluster.ClusterNotification
+import com.suprajit.uvcluster.NotificationManager
 import com.suprajit.uvcluster.R
 import com.suprajit.uvcluster.domain.dataModel.RangeLimit
 import com.suprajit.uvcluster.domain.dataModel.vcuData.TripMeterDisp
@@ -219,9 +221,9 @@ class DashboardFragment : Fragment() {
     }
 
     private fun onSecretTriggered() {
-        d("Secret", "Triggered! NavController=${findNavController()}")
-        findNavController()?.navigate(R.id.debugFragment)
+         findNavController()?.navigate(R.id.debugFragment)
     }
+
     private fun onSwipeUp() {
 
 
@@ -390,7 +392,7 @@ class DashboardFragment : Fragment() {
                     }
                 }
 
-                launch {
+               launch {
                     carViewModel.rcwRadarState.collect {rcwState->
                         if (!sharedViewModel.isConsoleAlertsOn) return@collect
                         if(rcwState) {
@@ -400,15 +402,15 @@ class DashboardFragment : Fragment() {
                                     R.drawable.bg_dashboard_radar_right_alert
                                 )
                             )
-
+                            
                             ivBgBottomRadarLeft.setImageDrawable(
                                 ContextCompat.getDrawable(
                                     requireContext(),
                                     R.drawable.bg_radar_left_alert
                                 )
                             )
-                            ivBgBottomRadarRight.visibility = View.VISIBLE
-                            ivBgBottomRadarLeft.visibility = View.VISIBLE
+                             ivBgBottomRadarRight.visibility = View.VISIBLE
+                             ivBgBottomRadarLeft.visibility = View.VISIBLE
                         }
                         else{
                             ivBgBottomRadarRight.visibility = View.INVISIBLE
@@ -532,7 +534,7 @@ class DashboardFragment : Fragment() {
     }
     private fun handleButtonNavigation(button: Int) {
 
-        val currentTime = System.currentTimeMillis()
+	val currentTime = System.currentTimeMillis()
 
         // 1. Check for Timeout: If too much time passed, reset the sequence progress
         if (currentTime - lastClickTime > SEQUENCE_TIMEOUT) {
@@ -613,6 +615,14 @@ class DashboardFragment : Fragment() {
             ButtonNavigation.Bottom.ordinal -> {
                 if (speed > 0) return
                 findNavController().navigate(R.id.action_dashboardFragment_to_menuFragment)
+            }
+           ButtonNavigation.Enter.ordinal -> {
+                NotificationManager.show(
+                    ClusterNotification.Params(
+                        "Cruise Control Unavailable",
+                        ""
+                    )
+                )
             }
 
         }

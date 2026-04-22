@@ -101,8 +101,7 @@ class FactoryResetFragment : Fragment() {
                 setTextColor(ContextCompat.getColor(requireContext(), R.color.white))
             }
             //showFactoryResetDialog()
-            startLogging(requireContext())
-
+	    startLogging(requireContext())
         }
     }
 

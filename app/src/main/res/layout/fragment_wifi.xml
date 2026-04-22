@@ -92,6 +92,7 @@
             android:textColor="@color/white"
             android:textFontWeight="500"
             android:textSize="20sp"
+            android:visibility="gone"
             app:layout_constraintBottom_toBottomOf="@id/tvWifi"
             app:layout_constraintEnd_toEndOf="@id/llWifi"
             app:layout_constraintTop_toTopOf="@id/tvWifi" />
@@ -116,7 +117,7 @@
             android:layout_marginTop="24dp"
             android:background="@drawable/bg_stroke"
             android:padding="8dp"
-            android:visibility="visible"
+            android:visibility="gone"
             app:layout_constraintStart_toStartOf="@id/tvWifi"
             app:layout_constraintTop_toBottomOf="@id/tvMyNetwork">
 
@@ -155,7 +156,7 @@
             android:layout_width="556dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:visibility="gone"
+            android:visibility="visible"
             android:nestedScrollingEnabled="false"
             app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
             app:layout_constraintStart_toStartOf="@id/clMyNetwork"
@@ -173,12 +174,12 @@
             android:textColor="@color/unSelectedTitle"
             android:textSize="24sp"
             android:textFontWeight="400"
-            android:visibility="visible"
+            android:visibility="gone"
             app:layout_constraintStart_toStartOf="@id/tvWifi"
             app:layout_constraintTop_toBottomOf="@id/savedNetworkList" />
 
         <ProgressBar
-            android:id="@+id/wifiAvailableDevices"
+            android:id="@+id/wifiAvailableDevicesProgressBar"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:indeterminateTint="@color/unSelectedTitle"
@@ -201,6 +202,10 @@
             app:layout_constraintTop_toBottomOf="@id/tvAvailableDevices"
             tools:itemCount="5"
             tools:listitem="@layout/item_wifi_device" />
+
     </androidx.constraintlayout.widget.ConstraintLayout>
+
+
 </androidx.core.widget.NestedScrollView>
+
 

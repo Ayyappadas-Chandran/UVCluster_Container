@@ -4,7 +4,10 @@ import android.graphics.RenderEffect
 import android.graphics.Shader
 import android.os.Build
 import android.os.Bundle
+import android.util.Log.d
+import android.view.GestureDetector
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
@@ -31,6 +34,7 @@ class EmergencyFragment : Fragment() {
     private lateinit var tvEmergencySOS: TextView
     private lateinit var clEmergency: ConstraintLayout
     //for bug no 46 - pop up exit on button press
+    private lateinit var tvEmergencyContactNumber: TextView
     private var emergencySosDialog : AlertDialog? = null
     private val carViewModel by activityViewModels<CarViewModel> { ViewModelFactory(context = requireContext()) }
 
@@ -73,7 +77,7 @@ class EmergencyFragment : Fragment() {
                 if(emergencySosDialog?.isShowing == true){
                     emergencySosDialog?.dismiss()
                 }else{
-                    findNavController().navigateUp()
+                    findNavController().navigate(R.id.myF77MenuFragment)
                 }
             }
         }
@@ -92,17 +96,46 @@ class EmergencyFragment : Fragment() {
         ivBack = view.findViewById(R.id.ivBack)
         tvEmergencySOS = view.findViewById(R.id.tvEmergencySOS)
         clEmergency = view.findViewById(R.id.clEmergency)
+        tvEmergencyContactNumber=view.findViewById(R.id.tvEmergencyContactNumber)
     }
 
     /**
      * Initializes click listeners for UI components.
      */
     private fun initClickListener() {
+
+        val gestureDetector = GestureDetector(
+            requireContext(),
+            object : GestureDetector.SimpleOnGestureListener() {
+
+                override fun onDown(e: MotionEvent): Boolean {
+                    return true
+                }
+
+                override fun onDoubleTap(e: MotionEvent): Boolean {
+                    d("EmergencyFragment", "Double tap detected")
+                    findNavController().navigate(R.id.versionsFragment)
+                    return true
+                }
+            }
+        )
+
+        tvEmergencyContactNumber.apply {
+            isClickable = true
+            isFocusable = true
+
+            setOnTouchListener { _, event ->
+                gestureDetector.onTouchEvent(event)
+                false
+            }
+        }
+
         tvEmergencySOS.setOnSoundClickListener(requireContext()) {
             showEmergencySosDialog()
         }
+
         ivBack.setOnSoundClickListener(requireContext()) {
-            findNavController().navigateUp()
+            findNavController().navigate(R.id.myF77MenuFragment)
         }
     }
 
@@ -138,3 +171,4 @@ class EmergencyFragment : Fragment() {
     }
 
 }
+

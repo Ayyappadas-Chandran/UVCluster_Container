@@ -241,6 +241,26 @@ class MenuFragment : Fragment() {
         addSwipeGesture(clBgNavigate)
         addSwipeGesture(clBgSetting)
         showToolBar()
+
+	//16April
+	viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                carViewModel.swiftButton.collect { swiftButton ->
+
+                    val button = Utilities.getButtonState(swiftButton)
+
+                    if (button == ButtonNavigation.None) return@collect
+
+                    if (!isMenuActive) {
+                        Log.w(TAG, "DROPPED — fragment not active")
+                        return@collect
+                    }
+
+                    Log.d(TAG, "swiftButton: ACCEPTED [${buttonName(button.ordinal)}] currentPosition=${positionName(currentPosition)}, navDest=${findNavController().currentDestination?.label}")
+                    handleButtonNavigation(button.ordinal)
+                }
+            }
+        }
     }
 
     override fun onResume() {
@@ -311,24 +331,8 @@ class MenuFragment : Fragment() {
                 //   Step 6: collector checks isMenuActive → false → event DROPPED
                 //   Step 4 (return): onResume sets isMenuActive = true
                 //   Next real press: isMenuActive = true → event ACCEPTED
-                // ------------------------------------------------------------------
-                launch {
-                    carViewModel.swiftButton.collect { swiftButton ->
-                        val button = Utilities.getButtonState(swiftButton)
-
-                        // Always ignore the "no button pressed" idle state
-                        if (button == ButtonNavigation.None) return@collect
-
-                        // THE GATE: drop any event if this fragment is not the active screen
-                        if (!isMenuActive) {
-                            Log.w(TAG, "swiftButton: DROPPED — fragment not active [${buttonName(button.ordinal)}]")
-                            return@collect
-                        }
-
-                        Log.d(TAG, "swiftButton: ACCEPTED [${buttonName(button.ordinal)}] currentPosition=${positionName(currentPosition)}, navDest=${findNavController().currentDestination?.label}")
-                        handleButtonNavigation(button.ordinal)
-                    }
-                }
+                // -------------------------------------------------------------
+		
 
                 // Observe ride mode to track ballistic state
                 launch {

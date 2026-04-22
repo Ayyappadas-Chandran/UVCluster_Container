@@ -62,7 +62,7 @@ class MyF77MenuFragment : Fragment() {
      */
     private fun initClickListener() {
         ivBack.setOnSoundClickListener(requireContext()) {
-            findNavController().navigateUp()
+            findNavController().navigate(R.id.menuFragment)
         }
     }
 

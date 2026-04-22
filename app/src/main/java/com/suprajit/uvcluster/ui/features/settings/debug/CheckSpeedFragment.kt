@@ -23,6 +23,8 @@ import android.net.wifi.WifiManager
 import android.widget.ImageView
 import android.telephony.TelephonyManager
 import androidx.annotation.RequiresPermission
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 class CheckSpeedFragment: Fragment() {
 
     override fun onCreateView(
@@ -45,11 +47,11 @@ class CheckSpeedFragment: Fragment() {
         val ssidText = view.findViewById<TextView>(R.id.ssidText)
 	val imeiText = view.findViewById<TextView>(R.id.imeiText)
         lifecycleScope.launch {
-            ssidText.text = "getting SSID.."
+            
             val result = withContext(Dispatchers.IO) {
-                getWifiSSID(context)
+                  getNetworkStatus()
             }
-            ssidText.text = "SSID: $result"
+            ssidText.text = "$result"
 
         }
 	lifecycleScope.launch {
@@ -124,7 +126,9 @@ class CheckSpeedFragment: Fragment() {
                 .format(speedMbps, timeSec)
 
         } catch (e: Exception) {
-            "Download Error: ${e.message}"
+	      // "Download Error: ${e.message}"
+	    d("CheckSpeedFragment", "Download failed: ${e.message}")
+            "Download failed"
         }
     }
 
@@ -171,7 +175,9 @@ class CheckSpeedFragment: Fragment() {
                 .format(speedMbps, timeSec)
 
         } catch (e: Exception) {
-            "Upload Error: ${e.message}"
+            //"Upload Error: ${e.message}"
+	    d("CheckSpeedFragment", "Upload failed: ${e.message}")
+            "Upload failed"
         }
     }
     fun getWifiSSID(context: Context?): String {
@@ -193,7 +199,51 @@ class CheckSpeedFragment: Fragment() {
             "SSID Error"
         }
     }
-	@RequiresPermission("android.permission.READ_PRIVILEGED_PHONE_STATE")
+    fun getNetworkStatus(): String {
+        return try {
+            val context = requireContext()
+
+            val connectivityManager =
+                context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+
+            val wifiManager =
+                context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
+
+            val wifiInfo = wifiManager.connectionInfo
+
+            // 🔹 1. Check WIFI FIRST (PRIORITY)
+            if (wifiInfo != null &&
+                wifiInfo.networkId != -1 &&
+                wifiInfo.ssid != null &&
+                wifiInfo.ssid != "<unknown ssid>"
+            ) {
+                var ssid = wifiInfo.ssid
+
+                if (ssid.startsWith("\"") && ssid.endsWith("\"")) {
+                    ssid = ssid.substring(1, ssid.length - 1)
+                }
+
+                return "SSID : $ssid"
+            }
+
+            // 🔹 2. Check MOBILE DATA
+            val activeNetwork = connectivityManager.activeNetwork ?: return "No connection"
+            val capabilities = connectivityManager.getNetworkCapabilities(activeNetwork)
+                ?: return "No connection"
+
+            if (capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)) {
+                return "LTE connected"
+            }
+
+            // 🔹 3. No connection
+            "No connection"
+
+        } catch (e: Exception) {
+            "Network Error"
+        }
+    }    
+
+
     private fun getImei(): String {
         return try {
             val tm =

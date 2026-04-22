@@ -26,6 +26,13 @@ class WifiDeviceAdapter(private val onDeviceSelected: (String) -> Unit) :
     private var selectedPosition = -1
     private var isItemClicked = false
 
+    private var selectedSsid: String? = null
+
+    fun updateSelected(ssid: String?) {
+        selectedSsid = ssid
+        notifyDataSetChanged()
+    }
+
     /**
      * Resets the selection state when triggered from the fragment.
      * This ensures all items are updated with a non-clicked (default) appearance.
@@ -78,7 +85,7 @@ class WifiDeviceAdapter(private val onDeviceSelected: (String) -> Unit) :
                 notifyItemChanged(selectedPosition)
 
             }
-            updateItemSelection(position, itemView.context)
+            updateItemSelection(item.ssid == selectedSsid)
         }
 
         /**
@@ -90,28 +97,16 @@ class WifiDeviceAdapter(private val onDeviceSelected: (String) -> Unit) :
          * If the item was selected from the fragment (`isClicked` is false), it applies a white background.
          * If the item was selected via user interaction, it highlights in red or shows default unselected style.
          */
-        private fun updateItemSelection(position: Int, context: Context) {
-            if (isItemClicked && position == selectedPosition) {
-                tvWifiDevice.apply {
-                    setBackgroundColor(ContextCompat.getColor(context, R.color.activeSelectionRed))
-                    setTextColor(ContextCompat.getColor(context, R.color.white))
-                }
-                ivLock.drawable.setTint(ContextCompat.getColor(context,R.color.white))
-                return
+        private fun updateItemSelection(isSelected: Boolean) {
+            if (isSelected) {
+                tvWifiDevice.setBackgroundColor(ContextCompat.getColor(itemView.context, R.color.activeSelectionRed))
+                tvWifiDevice.setTextColor(ContextCompat.getColor(itemView.context, R.color.white))
+                ivLock.drawable.setTint(ContextCompat.getColor(itemView.context, R.color.white))
+            } else {
+                tvWifiDevice.setBackgroundColor(ContextCompat.getColor(itemView.context, R.color.transparent))
+                tvWifiDevice.setTextColor(ContextCompat.getColor(itemView.context, R.color.unSelected))
+                ivLock.drawable.setTint(ContextCompat.getColor(itemView.context, R.color.unSelected))
             }
-            if (!isItemClicked && position == selectedPosition) {
-                tvWifiDevice.apply {
-                    setTextColor(ContextCompat.getColor(context, R.color.black))
-                    setBackgroundColor(ContextCompat.getColor(context, R.color.white))
-                }
-                ivLock.drawable.setTint(ContextCompat.getColor(context,R.color.black))
-                return
-            }
-            tvWifiDevice.apply {
-                setTextColor(ContextCompat.getColor(context, R.color.unSelected))
-                setBackgroundColor(ContextCompat.getColor(context,R.color.transparent))
-            }
-            ivLock.drawable.setTint(ContextCompat.getColor(context,R.color.unSelected))
         }
     }
 
@@ -140,4 +135,5 @@ class WifiDeviceAdapter(private val onDeviceSelected: (String) -> Unit) :
         ): Boolean = oldItem == newItem
     }
 }
+
 

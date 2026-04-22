@@ -77,10 +77,17 @@ class WifiRepoImpl(
         wifiManagerWrapper.connectToSavedNetwork(ssid)
     }
 
+    override fun connectedSSID(callback: (String?) -> Unit) {
+        wifiManagerWrapper.getConnectedSSID(callback)
+    }
+
     override fun reconnectRequestSSID(callback: (String?) -> Unit) {
         wifiManagerWrapper.getReconnectRequestSSID(callback)
     }
+
+
 }
+
 
 
 

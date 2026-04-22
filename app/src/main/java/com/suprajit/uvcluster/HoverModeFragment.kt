@@ -20,6 +20,7 @@ import androidx.navigation.fragment.findNavController
 import com.suprajit.uvcluster.domain.dataModel.RangeLimit
 import com.suprajit.uvcluster.domain.dataModel.vcuData.VcuInfoMsg
 import com.suprajit.uvcluster.domain.ennumerate.ButtonNavigation
+import com.suprajit.uvcluster.ui.features.dashboard.DashboardViewModel
 import com.suprajit.uvcluster.ui.viewModel.CarViewModel
 import com.suprajit.uvcluster.ui.viewModel.SharedViewModel
 import com.suprajit.uvcluster.utils.Utilities
@@ -39,6 +40,7 @@ class HoverModeFragment : Fragment() {
     private var speed = 0
     private val carViewModel: CarViewModel by activityViewModels { ViewModelFactory(requireContext()) }
     private val sharedViewModel: SharedViewModel by activityViewModels { ViewModelFactory(requireContext()) }
+    private val viewModel by activityViewModels<DashboardViewModel> { ViewModelFactory(context = requireContext()) }
     private var isMotorArmed=false
     private val debugSequence = listOf(
         ButtonNavigation.Back.ordinal,
@@ -48,6 +50,8 @@ class HoverModeFragment : Fragment() {
         ButtonNavigation.Left.ordinal
     )
     private var sequenceStep = 0
+    private var lastClickTime = 0L
+    private val SEQUENCE_TIMEOUT = 2000L
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -212,7 +216,7 @@ class HoverModeFragment : Fragment() {
 
         tvOdo.text = "$displayOdo $unitLabel"
 
-        if (vcuInfoMsg.speed.isNotEmpty()) {
+	if (vcuInfoMsg.speed.isNotEmpty()) {
             if (vcuInfoMsg.speed[0].toInt() == 0)
             {
                 speed = 0
@@ -274,50 +278,88 @@ class HoverModeFragment : Fragment() {
             true
         }
     }
+    fun getStep(is10Levels: Boolean) = if (is10Levels) 1 else 3
+
+    fun normalize(value: Int, is10Levels: Boolean): Int {
+        return if (is10Levels) value else (value / 3) * 3
+    }
     private fun handleButtonNavigation(button: Int) {
-	if (button == debugSequence[sequenceStep]) {
+
+        val currentTime = System.currentTimeMillis()
+
+        // 1. Check for Timeout: If too much time passed, reset the sequence progress
+        if (currentTime - lastClickTime > SEQUENCE_TIMEOUT) {
+            sequenceStep = 0
+        }
+
+        // 2. Sequence Logic
+        if (button == debugSequence[sequenceStep]) {
+            lastClickTime = currentTime
             sequenceStep++
 
-            // If the full sequence is matched
             if (sequenceStep == debugSequence.size) {
-                sequenceStep = 0 // Reset
+                sequenceStep = 0
                 findNavController().navigate(R.id.debugFragment)
-                return // Exit: do not process the individual button action
+                return
             }
 
-            // OPTIONAL: If you want the buttons to do NOTHING while the user is
-            // mid-sequence, return here.
+            // While correctly entering the sequence, we block normal button behavior
             return
         } else {
-            // Sequence broken: Reset the counter.
-            // We check if the "wrong" button is actually the start of a new sequence attempt.
-            sequenceStep = if (button == debugSequence[0]) 1 else 0
+            // Button didn't match the sequence: Reset sequence and continue to normal behavior
+            // Check if this "wrong" button is actually the start of a new sequence attempt
+            sequenceStep = if (button == debugSequence[0]) {
+                lastClickTime = currentTime
+                1
+            } else {
+                0
+            }
 
-            // If the sequence is broken, we fall through to the normal 'when' block
-            // so the buttons behave normally again.
+            // If we reset to 0, we do NOT return, so the 'when' block below executes
+            if (sequenceStep == 0) {
+                // Fall through to normal behavior
+            } else {
+                // It was the start of a new sequence, block normal behavior
+                return
+            }
         }
+
         when (button) {
             ButtonNavigation.Top.ordinal -> {
                 if (speed > 0) return
                 //findNavController().navigate(R.id.action_dashboardFragment_to_controlSectionFragment)
             }
 
+
             ButtonNavigation.Left.ordinal -> {
-                val regenValue = (sharedViewModel.regenValue - 1).coerceAtLeast(0)
+                val step = getStep(viewModel.is10Levels)
+
+                var current = sharedViewModel.regenValue
+                current = normalize(current, viewModel.is10Levels)
+
+                val regenValue = (current - step).coerceAtLeast(0)
+
                 sharedViewModel.saveRegenValue(regenValue)
-                val dataVal: Byte = regenValue.toByte()
-                val packet = byteArrayOf(dataVal)
-                d("REGEN_VALUE","Regen value cluster to VCU :$packet")
+
+                val packet = byteArrayOf(regenValue.toByte())
+                d("REGEN_VALUE", "LEFT -> $packet")
 
                 carViewModel.sendByteArrayProperty(0x2170039F, packet)
-
             }
 
             ButtonNavigation.Right.ordinal -> {
-                val regenValue = (sharedViewModel.regenValue + 1).coerceAtMost(9)
+                val step = getStep(viewModel.is10Levels)
+
+                var current = sharedViewModel.regenValue
+                current = normalize(current, viewModel.is10Levels)
+
+                val regenValue = (current + step).coerceAtMost(9)
+
                 sharedViewModel.saveRegenValue(regenValue)
-                val dataVal: Byte = regenValue.toByte()
-                val packet = byteArrayOf(dataVal)
+
+                val packet = byteArrayOf(regenValue.toByte())
+                d("REGEN_VALUE", "RIGHT -> $packet")
+
                 carViewModel.sendByteArrayProperty(0x2170039F, packet)
             }
 
@@ -325,13 +367,21 @@ class HoverModeFragment : Fragment() {
                 if (speed > 0) return
                 //findNavController().navigate(R.id.action_dashboardFragment_to_menuFragment)
             }
+            ButtonNavigation.Enter.ordinal -> {
+                NotificationManager.show(
+                    ClusterNotification.Params(
+                        "Cruise Control Unavailable",
+                        ""
+                    )
+                )
+            }
 
-            ButtonNavigation.Enter.ordinal -> findNavController().navigate(R.id.debugFragment)
         }
     }
 
 
 }
+
 
 
 

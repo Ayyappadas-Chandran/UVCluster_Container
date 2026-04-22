@@ -16,6 +16,7 @@ import com.suprajit.uvcluster.domain.dataModel.vcuData.TripInfo
 import com.suprajit.uvcluster.domain.dataModel.vcuData.TripMeterDisp
 import com.suprajit.uvcluster.domain.dataModel.vcuData.VcuInfoMsg
 import com.suprajit.uvcluster.domain.dataModel.vcuData.VehicleMetaData
+import com.suprajit.uvcluster.domain.manager.PreferenceManager
 import com.suprajit.uvcluster.domain.repository.CarRepository
 import com.suprajit.uvcluster.utils.Utilities.PROP_ID_ABS_MODE
 import com.suprajit.uvcluster.utils.Utilities.PROP_ID_ABS_MODE_STATUS
@@ -29,6 +30,7 @@ import com.suprajit.uvcluster.utils.Utilities.PROP_ID_HIGH_BEAM_TELLTALE
 import com.suprajit.uvcluster.utils.Utilities.PROP_ID_HAZARD_LIGHT_TELLTALE
 import com.suprajit.uvcluster.utils.Utilities.PROP_ID_MOTOR_ARM_DISARM_TELLTALE
 import com.suprajit.uvcluster.utils.Utilities.PROP_ID_HEARTBEAT_ENABLE_DISABLE
+import com.suprajit.uvcluster.utils.Utilities.PROP_ID_VEHICLE_INFO_REQ
 import com.suprajit.uvcluster.utils.Utilities.PROP_ID_CUSTOM
 import com.suprajit.uvcluster.utils.Utilities.PROP_ID_LOCKDOWN
 import com.suprajit.uvcluster.utils.Utilities.PROP_ID_MC_NO_ARM
@@ -41,6 +43,7 @@ import com.suprajit.uvcluster.utils.Utilities.PROP_ID_SCREEN_MODES
 import com.suprajit.uvcluster.utils.Utilities.PROP_ID_SLEEP_WAKE
 import com.suprajit.uvcluster.utils.Utilities.PROP_ID_SWIFT_BUTTON
 import com.suprajit.uvcluster.utils.Utilities.PROP_ID_VEHICLE_VALUE
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -129,6 +132,10 @@ class CarViewModel(private val carRepository: CarRepository?) : ViewModel() {
 
     private val _motorArmDisarmTellTale = MutableStateFlow(0)
     val motorArmDisarmTellTale: StateFlow<Int> = _motorArmDisarmTellTale.asStateFlow()
+
+   //SharedFlow for cmd-only (no data)
+    private val _vehicleInfoRequest = MutableSharedFlow<Unit>( extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+    val vehicleInfoRequest: SharedFlow<Unit> = _vehicleInfoRequest.asSharedFlow()
 
     private val _lockdown = MutableStateFlow(0)
     val lockdown: StateFlow<Int> = _lockdown.asStateFlow()
@@ -241,7 +248,9 @@ class CarViewModel(private val carRepository: CarRepository?) : ViewModel() {
 
     private val MSG_ID_USB_HEARTBEAT_IMX_S32 = 0x2170030F
 
-
+    private var _bootCompleted = false
+    val bootCompleted: Boolean
+        get() = _bootCompleted
 
 
     fun connect() {
@@ -312,6 +321,11 @@ class CarViewModel(private val carRepository: CarRepository?) : ViewModel() {
                 val heartBeatstatus = toInt(propertyValue.value)
                 _heartBeatstatus.value = heartBeatstatus
         }
+		 //VCU sends cmd only, no data
+            PROP_ID_VEHICLE_INFO_REQ -> {
+                d("CarViewModel", "vehicleInfoRequest cmd received from VCU")
+                _vehicleInfoRequest.tryEmit(Unit)  // triggers every time, no dedup
+            }
 
 		PROP_ID_HAZARD_LIGHT_TELLTALE -> {
                     val hazardLightTellTale = toInt(propertyValue.value)
@@ -1050,7 +1064,14 @@ class CarViewModel(private val carRepository: CarRepository?) : ViewModel() {
     }
 
 
+     fun onBootCompleted() {
+         d("onBootCompleted","CarViewMode :: DefaultNightMode Entry")
+        _bootCompleted = true
+    }
+
     fun startHeartbeat() {
+        d("Heartbeat", "AkhilNewLog Heartbeat Entry")
+
         if (heartbeatJob?.isActive == true) {
             d("Heartbeat", "already running, skipping restart")
             return
@@ -1060,7 +1081,7 @@ class CarViewModel(private val carRepository: CarRepository?) : ViewModel() {
         isHeartbeatEnabled = true
 
         heartbeatJob = viewModelScope.launch(Dispatchers.IO) {
-            d("Heartbeat", "started")
+            d("Heartbeat", " AkhilNewLog  started")
             while (isActive) {
                 if (isHeartbeatEnabled) {
                     val payload = buildHeartbeatPayload()

@@ -1,66 +1,97 @@
+
 package com.suprajit.uvcluster.ui.features.settings.filemanager
 
-
-import android.app.AlertDialog
-import android.content.Intent
-import android.os.Build
-import android.os.Bundle
+import android.content.*
+import android.os.*
 import android.util.Log
 import android.view.*
-import android.webkit.MimeTypeMap
-import android.widget.EditText
-import android.widget.TextView
-import android.widget.Toast
+import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputMethodManager
+import android.widget.*
 import androidx.activity.addCallback
+import androidx.appcompat.app.AlertDialog
 import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
+import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.*
+import androidx.work.*
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.suprajit.uvcluster.R
 import java.io.File
+import java.util.concurrent.TimeUnit
+import android.text.TextWatcher
+import android.text.Editable
+
 
 class FileManagerFragment : Fragment() {
+
+    private val TAG = "FileManager"
 
     private lateinit var recyclerView: RecyclerView
     private lateinit var toolbar: MaterialToolbar
     private lateinit var fab: FloatingActionButton
+    private lateinit var searchBar: EditText
 
-    // Navigation stack
+    private lateinit var progressBar: ProgressBar
+    private lateinit var progressText: TextView
+
+    private lateinit var adapter: FileAdapter
+
     private val pathStack = mutableListOf<String>()
+    private val currentList = mutableListOf<FileNode>()
 
-    // Current list
-    private var currentList = mutableListOf<FileNode>()
-
-    private var isGrid = false
+    private var selectAllState = false
 
     data class FileNode(
-        val name: String,
-        val fullPath: String,
+        var name: String,
+        var fullPath: String,
         val isDirectory: Boolean,
         var isSelected: Boolean = false
     )
 
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
-        return inflater.inflate(R.layout.fragment_file_manager, container, false)
-    }
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ) = inflater.inflate(R.layout.fragment_file_manager, container, false)
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+
+        Log.d(TAG, "onViewCreated called")
 
         recyclerView = view.findViewById(R.id.recyclerView)
         toolbar = view.findViewById(R.id.topBar)
         fab = view.findViewById(R.id.fab)
+        searchBar = view.findViewById(R.id.searchBar)
 
-        setupLayout()
+        progressBar = view.findViewById(R.id.storageProgressBar)
+        progressText = view.findViewById(R.id.storageText)
+
+        setupRecycler()
         setupToolbar()
         setupFab()
+        setupSearch()
+
+        adapter = FileAdapter(currentList)
+        recyclerView.adapter = adapter
 
         loadDirectory("/")
+        updateStorageProgress()
 
-        // 🔙 Back navigation
+        if (!WorkManager.isInitialized()) {
+            Log.d(TAG, "Initializing WorkManager")
+            WorkManager.initialize(
+                requireContext().applicationContext,
+                Configuration.Builder().build()
+            )
+        }
+
+        CleanupScheduler.schedule(requireContext())
+
         requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner) {
             if (pathStack.size > 1) {
-               pathStack.removeAt(pathStack.lastIndex)
+                pathStack.removeAt(pathStack.lastIndex)
                 loadDirectory(pathStack.last())
             } else {
                 requireActivity().finish()
@@ -68,284 +99,195 @@ class FileManagerFragment : Fragment() {
         }
     }
 
-    // =========================================================
-    //  MAIN LOADER (UNCHANGED + IMPROVED)
-    // =========================================================
+    // ================= STORAGE =================
+    private fun updateStorageProgress() {
+        val stat = StatFs(Environment.getDataDirectory().path)
+        val total = stat.totalBytes.toDouble()
+        val used = total - stat.availableBytes
+        val percent = ((used / total) * 100).toInt()
+
+        Log.d(TAG, "Storage Used: $percent%")
+
+        progressBar.progress = percent
+        progressText.text = "Storage Used: $percent%"
+    }
+
+    // ================= LOAD =================
     private fun loadDirectory(path: String) {
 
-        Log.d("FILE_MANAGER", "📂 Loading: $path")
+        Log.d(TAG, "Loading directory: $path")
 
         Thread {
+            val dir = File(path)
 
-            var files = listFilesWithSu(path)
+            val files = dir.listFiles()?.map {
+                FileNode(it.name, it.absolutePath, it.isDirectory)
+            } ?: emptyList()
 
-            Log.d("FILE_MANAGER", "SU count: ${files.size}")
+            Log.d(TAG, "Files loaded: ${files.size}")
 
-            if (files.isEmpty()) {
-                files = listFilesNormal(path)
-                Log.d("FILE_MANAGER", "SH count: ${files.size}")
-            }
-
-            if (files.isEmpty()) {
-
-                val fallback = "/storage/emulated/0"
-
-                requireActivity().runOnUiThread {
-                    Toast.makeText(context, "Root not accessible", Toast.LENGTH_SHORT).show()
-                }
-
-                files = listFilesNormal(fallback)
-
-                pathStack.clear()
-                pathStack.add(fallback)
-            }
+            val sorted = files.sortedWith(
+                compareBy<FileNode>(
+                    { !it.isDirectory },
+                    { it.name.lowercase() }
+                )
+            )
 
             if (pathStack.isEmpty() || pathStack.last() != path) {
                 pathStack.add(path)
             }
 
-            currentList = files.toMutableList()
+            currentList.clear()
+            currentList.addAll(sorted)
 
             requireActivity().runOnUiThread {
-                refresh()
+                adapter.notifyDataSetChanged()
             }
 
         }.start()
     }
 
-    private fun refresh() {
-        recyclerView.adapter = FileAdapter(currentList)
+    private fun setupRecycler() {
+        recyclerView.layoutManager = LinearLayoutManager(context)
     }
 
-    // =========================================================
-    // SORT
-    // =========================================================
-    private fun sortAZ() {
-        currentList.sortBy { it.name.lowercase() }
-        Toast.makeText(context, "Sorted A-Z", Toast.LENGTH_SHORT).show()
-        refresh()
-    }
+    // ================= SEARCH =================
+    private fun setupSearch() {
 
-    private fun sortDate() {
-        currentList.sortByDescending { File(it.fullPath).lastModified() }
-        Toast.makeText(context, "Sorted by Date", Toast.LENGTH_SHORT).show()
-        refresh()
-    }
+        searchBar.addTextChangedListener(object : android.text.TextWatcher {
+            override fun afterTextChanged(s: Editable?) {}
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                Log.d(TAG, "Search typing: $s")
+                performSearch(s.toString())
+            }
+        })
 
-    // =========================================================
-    // 🔍 SEARCH
-    // =========================================================
-    private fun search(query: String) {
-        val filtered = currentList.filter {
-            it.name.contains(query, true)
-        }
-        recyclerView.adapter = FileAdapter(filtered.toMutableList())
-    }
+        searchBar.setOnEditorActionListener { _, actionId, event ->
 
-    // =========================================================
-    // SELECT ALL
-    // =========================================================
-    private fun selectAll() {
-        currentList.forEach { it.isSelected = true }
-        refresh()
-    }
+            if (actionId == EditorInfo.IME_ACTION_SEARCH ||
+                (event != null && event.keyCode == KeyEvent.KEYCODE_ENTER)
+            ) {
 
-    // =========================================================
-    // 🗑 DELETE
-    // =========================================================
-    private fun deleteSelected() {
-        currentList.removeAll {
-            if (it.isSelected) {
-                File(it.fullPath).deleteRecursively()
+                Log.d(TAG, "Search submitted: ${searchBar.text}")
+
+                performSearch(searchBar.text.toString())
+
+                val imm = requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+                imm.hideSoftInputFromWindow(searchBar.windowToken, 0)
+
                 true
             } else false
         }
-        Toast.makeText(context, "Deleted", Toast.LENGTH_SHORT).show()
-        refresh()
     }
 
-    // =========================================================
-    //  RENAME
-    // =========================================================
-    private fun rename(node: FileNode) {
+    private fun performSearch(query: String) {
+        Log.d(TAG, "Performing search: $query")
 
-        val input = EditText(requireContext())
-        input.setText(node.name)
+        if (query.isBlank()) {
+            adapter.updateList(currentList)
+            return
+        }
 
-        AlertDialog.Builder(requireContext())
-            .setTitle("Rename")
-            .setView(input)
-            .setPositiveButton("OK") { _, _ ->
-                val file = File(node.fullPath)
-                val newFile = File(file.parent, input.text.toString())
+        val filtered = currentList.filter {
+            it.name.contains(query, ignoreCase = true)
+        }
 
-                if (file.renameTo(newFile)) {
-                    Toast.makeText(context, "Renamed", Toast.LENGTH_SHORT).show()
-                    loadDirectory(pathStack.last())
-                }
-            }
-            .show()
+        Log.d(TAG, "Search result count: ${filtered.size}")
+
+        adapter.updateList(filtered)
     }
 
-    // =========================================================
-    // SHARE
-    // =========================================================
-    private fun share(path: String) {
-        val file = File(path)
-
-        val uri = FileProvider.getUriForFile(
-            requireContext(),
-            requireContext().packageName + ".provider",
-            file
-        )
-
-        val intent = Intent(Intent.ACTION_SEND)
-        intent.type = "*/*"
-        intent.putExtra(Intent.EXTRA_STREAM, uri)
-        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-
-        startActivity(Intent.createChooser(intent, "Share"))
+    // ================= SORT =================
+    private fun sortAZ() {
+        Log.d(TAG, "Sorting A-Z")
+        val sorted = currentList.sortedBy { it.name.lowercase() }
+        adapter.updateList(sorted)
     }
 
-    // =========================================================
-    // OPEN FILE
-    // =========================================================
-    private fun openFile(path: String) {
-        val file = File(path)
-
-        val uri = FileProvider.getUriForFile(
-            requireContext(),
-            requireContext().packageName + ".provider",
-            file
-        )
-
-        val mime = MimeTypeMap.getSingleton()
-            .getMimeTypeFromExtension(file.extension)
-
-        val intent = Intent(Intent.ACTION_VIEW)
-        intent.setDataAndType(uri, mime ?: "*/*")
-        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-
-        startActivity(intent)
+    private fun sortByDate() {
+        Log.d(TAG, "Sorting by date")
+        val sorted = currentList.sortedByDescending {
+            File(it.fullPath).lastModified()
+        }
+        adapter.updateList(sorted)
     }
 
-    // =========================================================
-    // TOOLBAR
-    // =========================================================
+    // ================= TOOLBAR =================
     private fun setupToolbar() {
 
-        toolbar.setOnMenuItemClickListener {
-            when (it.itemId) {
-                R.id.sort_az -> { sortAZ(); true }
-                R.id.sort_date -> { sortDate(); true }
-                R.id.grid_toggle -> {
-                    isGrid = !isGrid
-                    setupLayout()
-                    true
-                }
-                R.id.select_all -> { selectAll(); true }
-                else -> false
-            }
+        toolbar.setNavigationOnClickListener {
+            Log.d(TAG, "Toolbar back clicked")
+            findNavController().navigate(R.id.debugFragment)
         }
 
         toolbar.setOnClickListener {
-            val input = EditText(requireContext())
+            Log.d(TAG, "Toggle select all")
+            toggleSelectAll()
+        }
 
-            AlertDialog.Builder(requireContext())
-                .setTitle("Search")
-                .setView(input)
-                .setPositiveButton("Go") { _, _ ->
-                    search(input.text.toString())
-                }
-                .show()
+        toolbar.setOnLongClickListener {
+            Log.d(TAG, "Toolbar long press → sort A-Z")
+            sortAZ()
+            true
         }
     }
 
-    // =========================================================
-    // FAB
-    // =========================================================
+    // ================= FAB =================
     private fun setupFab() {
         fab.setOnClickListener {
 
-            val options = arrayOf("Delete", "Share", "Rename")
+            Log.d(TAG, "FAB clicked")
+
+            val options = arrayOf("Delete", "Sort A-Z", "Sort Date")
 
             AlertDialog.Builder(requireContext())
                 .setItems(options) { _, which ->
-
-                    val selected = currentList.find { it.isSelected }
-
                     when (which) {
-                        0 -> deleteSelected()
-                        1 -> selected?.let { share(it.fullPath) }
-                        2 -> selected?.let { rename(it) }
+                        0 -> {
+                            Log.d(TAG, "Delete selected clicked")
+                            deleteSelected()
+                        }
+                        1 -> sortAZ()
+                        2 -> sortByDate()
                     }
                 }
                 .show()
         }
     }
 
-    // =========================================================
-    // GRID / LIST
-    // =========================================================
-    private fun setupLayout() {
-        recyclerView.layoutManager = if (isGrid) {
-            GridLayoutManager(context, 3)
-        } else {
-            LinearLayoutManager(context)
-        }
+    // ================= DELETE =================
+    private fun deleteSelected() {
+
+        Log.d(TAG, "Triggering WorkManager cleanup")
+
+        val request = OneTimeWorkRequestBuilder<LogCleanupWorker>().build()
+
+        WorkManager.getInstance(requireContext()).enqueue(request)
+
+        Toast.makeText(context, "Cleanup started", Toast.LENGTH_SHORT).show()
     }
 
-    // =========================================================
-    // SHELL EXECUTION (UNCHANGED)
-    // =========================================================
-    private fun listFilesWithSu(path: String): List<FileNode> {
-        return executeLs(arrayOf("su", "-c", "ls -p \"$path\""), path)
+    private fun toggleSelectAll() {
+        selectAllState = !selectAllState
+        Log.d(TAG, "Select all toggled: $selectAllState")
+
+        currentList.forEach { it.isSelected = selectAllState }
+        adapter.notifyDataSetChanged()
     }
 
-    private fun listFilesNormal(path: String): List<FileNode> {
-        return executeLs(arrayOf("sh", "-c", "ls -p \"$path\""), path)
-    }
-
-    private fun executeLs(cmd: Array<String>, path: String): List<FileNode> {
-
-        val result = mutableListOf<FileNode>()
-
-        try {
-            val process = Runtime.getRuntime().exec(cmd)
-
-            val reader = process.inputStream.bufferedReader()
-
-            reader.forEachLine { line ->
-                val isDir = line.endsWith("/")
-                val cleanName = line.removeSuffix("/")
-
-                val fullPath = if (path == "/") "/$cleanName" else "$path/$cleanName"
-
-                result.add(FileNode(cleanName, fullPath, isDir))
-            }
-
-            process.waitFor()
-
-        } catch (e: Exception) {
-            Log.e("FILE_MANAGER", "Error", e)
-        }
-
-        return result
-    }
-
-    // =========================================================
-    // ADAPTER
-    // =========================================================
+    // ================= ADAPTER =================
     inner class FileAdapter(private val files: MutableList<FileNode>) :
         RecyclerView.Adapter<FileAdapter.VH>() {
 
-        inner class VH(val tv: TextView) : RecyclerView.ViewHolder(tv)
+        inner class VH(view: View) : RecyclerView.ViewHolder(view) {
+            val name: TextView = view.findViewById(R.id.fileName)
+            val icon: ImageView = view.findViewById(R.id.fileIcon)
+            val check: CheckBox = view.findViewById(R.id.fileCheck)
+        }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
-            val tv = TextView(parent.context)
-            tv.textSize = 16f
-            tv.setPadding(40, 30, 20, 30)
-            return VH(tv)
+            return VH(layoutInflater.inflate(R.layout.item_file, parent, false))
         }
 
         override fun getItemCount() = files.size
@@ -354,27 +296,111 @@ class FileManagerFragment : Fragment() {
 
             val node = files[position]
 
-            holder.tv.text =
-                (if (node.isDirectory) "📁 " else "📄 ") + node.name
+            holder.name.text = node.name
+            holder.check.isChecked = node.isSelected
 
-            holder.tv.setBackgroundColor(
-                if (node.isSelected) 0xFFE0E0E0.toInt()
-                else 0xFFFFFFFF.toInt()
-            )
+            holder.itemView.setOnClickListener {
+                Log.d(TAG, "Clicked: ${node.fullPath}")
 
-            holder.tv.setOnClickListener {
-                if (node.isDirectory) {
-                    loadDirectory(node.fullPath)
-                } else {
-                    openFile(node.fullPath)
-                }
+                if (node.isDirectory) loadDirectory(node.fullPath)
+                else openFile(node.fullPath)
             }
 
-            holder.tv.setOnLongClickListener {
+            holder.itemView.setOnLongClickListener {
                 node.isSelected = !node.isSelected
+                Log.d(TAG, "Selection changed: ${node.name} → ${node.isSelected}")
                 notifyItemChanged(position)
                 true
             }
         }
+
+        fun updateList(newList: List<FileNode>) {
+            Log.d(TAG, "Adapter update list size: ${newList.size}")
+            files.clear()
+            files.addAll(newList)
+            notifyDataSetChanged()
+        }
+    }
+
+    private fun openFile(path: String) {
+        Log.d(TAG, "Opening file: $path")
+
+        val file = File(path)
+        val uri = FileProvider.getUriForFile(
+            requireContext(),
+            requireContext().packageName + ".provider",
+            file
+        )
+
+        val intent = Intent(Intent.ACTION_VIEW)
+        intent.setDataAndType(uri, "*/*")
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+
+        startActivity(intent)
+    }
+}
+
+//
+// ================= WORKER =================
+//
+class LogCleanupWorker(
+    context: Context,
+    params: WorkerParameters
+) : Worker(context, params) {
+
+    private val TAG = "CleanupWorker"
+
+    override fun doWork(): Result {
+
+        Log.d(TAG, "🚀 Worker started")
+
+        val stat = StatFs(Environment.getDataDirectory().path)
+        val usedPct =
+            ((stat.totalBytes - stat.availableBytes).toDouble() / stat.totalBytes * 100)
+
+        Log.d(TAG, "Storage Used: $usedPct%")
+
+        if (usedPct <= 80) {
+            Log.d(TAG, "Skipping cleanup — below threshold")
+            return Result.success()
+        }
+
+        val intent = Intent("com.example.database.ACTION_CLEANUP_LOGS").apply {
+            setPackage("com.example.database")
+            putExtra("used_pct", usedPct)
+        }
+
+        try {
+            applicationContext.sendBroadcastAsUser(intent, UserHandle.ALL)
+            Log.d(TAG, "✅ Broadcast SENT successfully")
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Broadcast FAILED", e)
+        }
+
+        return Result.success()
+    }
+}
+
+//
+// ================= SCHEDULER =================
+//
+object CleanupScheduler {
+
+    private const val TAG = "CleanupScheduler"
+
+    fun schedule(context: Context) {
+
+        Log.d(TAG, "Scheduling periodic cleanup")
+
+        val request = PeriodicWorkRequestBuilder<LogCleanupWorker>(
+            24, TimeUnit.HOURS
+        ).build()
+
+        WorkManager.getInstance(context)
+            .enqueueUniquePeriodicWork(
+                "LogCleanup",
+                ExistingPeriodicWorkPolicy.KEEP,
+                request
+            )
     }
 }

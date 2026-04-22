@@ -94,7 +94,7 @@ class CameraPreviewFragment : Fragment() {
 
     private fun initView(view: View) {
         tvBack = view.findViewById(R.id.tvBack)
-        textureView = view.findViewById(R.id.textureView)
+        //textureView = view.findViewById(R.id.textureView)
     }
 
     private fun initClickListener() {

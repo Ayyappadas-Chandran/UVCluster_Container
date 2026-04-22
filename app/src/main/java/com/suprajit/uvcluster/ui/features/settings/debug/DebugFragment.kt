@@ -518,7 +518,6 @@ class DebugFragment : Fragment() {
         MiscFlag(125, "UNUSED_125", Severity.INFO),
         MiscFlag(126, "UNUSED_126", Severity.INFO),
         MiscFlag(127, "UNUSED_127", Severity.INFO),
-
         MiscFlag(128, "MAX_MISC_STATUS_FLAGS", Severity.INFO)
     )
 
@@ -568,16 +567,18 @@ class DebugFragment : Fragment() {
         }
         tvHeader.text = "DEBUG"
         tvImei.text = "IMEI : " + getImei()
-        startLogging(requireContext())
         initObserver()
+	startLogging(requireContext())
         buttonStart.setOnClickListener {
             folderPickerLauncher.launch(null)
+
             //startLogging(requireContext())
             d("DebugFragment", "Critical log capture STARTED")
         }
 
         buttonStop.setOnClickListener {
-            stopLogging()
+          findNavController().navigate(R.id.filemanagerFragment)  
+	  stopLogging()
             d("DebugFragment", "Critical log capture STOPPED")
         }
 	buttonToNextPage.setOnClickListener {
@@ -893,7 +894,7 @@ class DebugFragment : Fragment() {
                     carViewModel.swiftButton.collect { swiftButton ->
                         val button = Utilities.getButtonState(swiftButton)
                          if (ButtonNavigation.Enter == button) {
-                             val destination = when {
+                            val destination = when {
                                  isHover -> R.id.hoverModeFragment
                                  isCHarging -> R.id.chargingFragment
                                  else -> R.id.dashboardFragment
@@ -927,8 +928,8 @@ class DebugFragment : Fragment() {
                 }
                launch {
                     carViewModel.tellTales.collect { tellTales ->
-                       isHover= tellTales.modeHover==1
-                        isCHarging = tellTales.charger == 1 || tellTales.charger == 2
+                        isHover= tellTales.modeHover==1
+			isCHarging = tellTales.charger == 1 || tellTales.charger == 2
                     }
                 }
             }
@@ -1072,18 +1073,18 @@ class DebugFragment : Fragment() {
     fun startLogging(context: Context) {
         CoroutineScope(Dispatchers.IO).launch {
             try {
+		d("LOGGING", "StartLogging")
                 val process = Runtime.getRuntime().exec(arrayOf("sh", "/system/etc/onDemand_logcat.sh"))
 
                 // Read stdout
                 val stdout = process.inputStream.bufferedReader().readText()
-                // Read stderr — this is where your error will be hiding
                 val stderr = process.errorStream.bufferedReader().readText()
 
                 val exitCode = process.waitFor()
 
                 d("LOGGING", "Exit code: $exitCode")
                 d("LOGGING", "stdout: $stdout")
-                e("LOGGING", "stderr: $stderr")  // <-- Check this in logcat
+                e("LOGGING", "stderr: $stderr")
             } catch (e: Exception) {
                 e("LOGGING", "Exception: ${e.message}", e)
             }

@@ -21,6 +21,7 @@ import com.suprajit.uvcluster.utils.Utilities.PROP_ID_HIGH_BEAM_TELLTALE
 import com.suprajit.uvcluster.utils.Utilities.PROP_ID_HAZARD_LIGHT_TELLTALE
 import com.suprajit.uvcluster.utils.Utilities.PROP_ID_MOTOR_ARM_DISARM_TELLTALE
 import com.suprajit.uvcluster.utils.Utilities.PROP_ID_HEARTBEAT_ENABLE_DISABLE
+import com.suprajit.uvcluster.utils.Utilities.PROP_ID_VEHICLE_INFO_REQ
 import com.suprajit.uvcluster.utils.Utilities.PROP_ID_CUSTOM
 import com.suprajit.uvcluster.utils.Utilities.PROP_ID_LOCKDOWN
 import com.suprajit.uvcluster.utils.Utilities.PROP_ID_MC_NO_ARM
@@ -86,6 +87,7 @@ class CarServiceWrapper(private val context: Context) {
 		registerProperId(PROP_ID_HAZARD_LIGHT_TELLTALE)
                 registerProperId(PROP_ID_MOTOR_ARM_DISARM_TELLTALE)
 		registerProperId(PROP_ID_HEARTBEAT_ENABLE_DISABLE)
+		 registerProperId(PROP_ID_VEHICLE_INFO_REQ)
                 registerProperId(PROP_ID_LOCKDOWN)
                 registerProperId(PROP_ID_CUSTOM)
                 registerProperId(PROP_ID_FOTA_UPDATE)

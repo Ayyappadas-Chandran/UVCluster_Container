@@ -133,9 +133,9 @@ class ParkAssistantFragment : Fragment() {
                         updateVehicleValue(vehicleValue)
                     }
                 }
-                launch {
+		launch {
                     carViewModel.vcuInfoMsg.collect { vcuInfo ->
-                        d("DashboardFragment", "vcuInfo:$vcuInfo")
+                        d("ParkAssistFragment", "vcuInfo:$vcuInfo")
                         updateVcuMsg(vcuInfo)
                     }
                 }

@@ -353,6 +353,7 @@ class SettingsFragment : Fragment() {
             SettingMenuItem(getString(R.string.general), R.id.generalFragment),
             SettingMenuItem(getString(R.string.system_updates), R.id.systemUpdatesFragment),
             SettingMenuItem("BUG REPORT", R.id.factoryResetFragment),
+	    SettingMenuItem("Habitat Reset", R.id.habitatresetFragment)
         )
 
         verticalMenuAdapter = VerticalMenuAdapter(position, { destinationId, adapterPosition ->

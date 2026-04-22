@@ -212,14 +212,15 @@ class MapFragment : Fragment() {
             tvRangeUnit.text = if (unit == "miles") "miles" else "km"
             tvDistance.text = if (unit == "miles") "2.3 miles" else "2.3 km"
         }
-        if (vcuInfoMsg.speed.isNotEmpty()) {
+	
+	if (vcuInfoMsg.speed.isNotEmpty()) {
             val isMiles =
                 sharedViewModel.distanceUnit.equals("miles", ignoreCase = true)
             val unitText = if (isMiles) "mph" else "km/h"
 
             if (vcuInfoMsg.speed[0].toInt() == 0)
             {
-                tvSpeed.text = "000"
+                tvSpeed.text = "0"
                 tvSpeedUnit.text = unitText
             }
         }

@@ -1,6 +1,7 @@
 package com.suprajit.uvcluster.ui.features.settings.general
 
 import android.os.Bundle
+import android.util.Log.d
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -51,6 +52,7 @@ class GeneralFragment : Fragment() {
     private lateinit var clDistanceUnit: ConstraintLayout
     private val sharedViewModel by activityViewModels<SharedViewModel> { ViewModelFactory(context = requireContext()) }
     private val viewModel by viewModels<GeneralViewModel> { ViewModelFactory(context = requireContext()) }
+    private val carViewModel by activityViewModels<CarViewModel> { ViewModelFactory(context = requireContext()) }
     private var clickedUiState: ClickedUiState = ClickedUiState.DateAndTime
     private var isLanguageClicked = true
     private var isTimeZoneClicked = true
@@ -184,11 +186,13 @@ class GeneralFragment : Fragment() {
             isDistanceUnitClicked = true
             viewModel.saveDistanceUnit("km")
             clickedUiState= ClickedUiState.DistanceUnit
+            sendDistanceUnitKM(true)
             handleUiState()
         }
         tvDistanceUnitMiles.setOnSoundClickListener(requireContext()) {
             isDistanceUnitClicked = true
             viewModel.saveDistanceUnit("miles")
+            sendDistanceUnitKM(false)
             clickedUiState= ClickedUiState.DistanceUnit
             handleUiState()
         }
@@ -258,7 +262,7 @@ class GeneralFragment : Fragment() {
                             scrollView.post {
                                 scrollView.fullScroll(View.FOCUS_DOWN)
                             }
-                            handleButtonNavigationChargingVertical()
+                            handleButtonNavigationDistanceUnitVertical() // wrap to bottom
                         }
 
                         ButtonClickedState.TimeZone -> {
@@ -281,8 +285,12 @@ class GeneralFragment : Fragment() {
                             handleButtonNavigationLanguageVertical()
                         }
 
-                        ButtonClickedState.DistanceUnit ->
-                            handleButtonNavigationDistanceUnitVertical()
+                        ButtonClickedState.DistanceUnit -> {
+                            scrollView.post {
+                                scrollView.fullScroll(View.FOCUS_DOWN)
+                            }
+                            handleButtonNavigationChargingVertical() // go up to Charging
+                        }
                     }
                 }
 
@@ -317,13 +325,17 @@ class GeneralFragment : Fragment() {
                         }
 
                         ButtonClickedState.Charging -> {
-                            scrollView.fullScroll(View.FOCUS_UP)
-                            handleButtonNavigationDateAndTimeVertical()
+                            scrollView.post {
+                                scrollView.fullScroll(View.FOCUS_DOWN) // scroll DOWN to DistanceUnit
+                            }
+                            handleButtonNavigationDistanceUnitVertical()
                         }
 
                         ButtonClickedState.DistanceUnit -> {
-                            scrollView.fullScroll(View.FOCUS_UP)
-                            handleButtonNavigationDistanceUnitVertical()
+                            scrollView.post {
+                                scrollView.fullScroll(View.FOCUS_UP) // back to top
+                            }
+                            handleButtonNavigationDateAndTimeVertical() // wrap to DateAndTime
                         }
                     }
                 }
@@ -356,9 +368,10 @@ class GeneralFragment : Fragment() {
         }
     private fun handleButtonNavigationDistanceUnitHorizontal() {
         if (viewModel.distanceUnit=="km") {
-            tvDistanceUnitKm.performClick()
-        } else {
+
             tvDistanceUnitMiles.performClick()
+        } else {
+            tvDistanceUnitKm.performClick()
         }
     }
 
@@ -641,6 +654,7 @@ class GeneralFragment : Fragment() {
         tvDistanceUnitKm.apply {
             setTextColor(if (viewModel.distanceUnit=="km") selectedTextColor else unselectedTextColor)
             setBackgroundColor(if (viewModel.distanceUnit=="km") selectedBackgroundColour else unselectedBackgroundColor)
+
         }
         tvDistanceUnitMiles.apply {
             setTextColor(if ((viewModel.distanceUnit=="miles")) selectedTextColor else unselectedTextColor)
@@ -856,5 +870,12 @@ class GeneralFragment : Fragment() {
             Charging,
             DistanceUnit
         }
+    private fun sendDistanceUnitKM(isKm: Boolean) {
+        val value: Byte = if (isKm) 0.toByte() else 1.toByte()
+        d("GeneralFragment", "isKM:$isKm")
+        val packet = byteArrayOf(value)
+        carViewModel.sendByteArrayProperty(0x217002E0, packet)
+    }
 
 }
+

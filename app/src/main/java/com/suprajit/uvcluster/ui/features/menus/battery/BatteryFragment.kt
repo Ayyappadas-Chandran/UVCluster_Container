@@ -145,7 +145,7 @@ class BatteryFragment : Fragment() {
 
             ButtonNavigation.Enter.ordinal -> {
                 if (!isWinterMode) return
-                findNavController().navigate(R.id.winterModeFragment)
+               // findNavController().navigate(R.id.winterModeFragment)
             }
 
             ButtonNavigation.Back.ordinal -> {

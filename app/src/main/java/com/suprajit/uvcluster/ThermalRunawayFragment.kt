@@ -34,7 +34,7 @@ class ThermalRunawayFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         initViews(view)
-        initClickListener()
+      //  initClickListener()
         initObserver()
     }
 
@@ -56,13 +56,13 @@ class ThermalRunawayFragment : Fragment() {
                     carViewModel.tellTales.collect { tellTales ->
                         val isThermalRunaway = tellTales.thermalRunway == 1
                         val isHover=tellTales.modeHover==1
-                        if (!isThermalRunaway) {
+                        /*if (!isThermalRunaway) {
                             if(!isHover)
                             findNavController().navigate(R.id.dashboardFragment)
                             else
                                 findNavController().navigate(R.id.debugFragment)
 
-                        }
+                        }*/
 
                     }
                 }
@@ -71,5 +71,6 @@ class ThermalRunawayFragment : Fragment() {
     }
 
 }
+
 
 

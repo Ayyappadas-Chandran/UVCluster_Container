@@ -37,6 +37,7 @@ object NotificationManager {
     private var prevModeHover: Int = 0
     private var prevRideModes: Int = -1
     private var prevHillHold: Int = -1
+    private var prevRideMode: Int=2
     private var isCharging = false
 
     fun init(context: Context, carViewModel: CarViewModel, sharedViewModel: SharedViewModel) {
@@ -132,23 +133,24 @@ object NotificationManager {
         // 3. Battery SOC
         scope.launch {
             carViewModel.tellTales.collect { tellTales ->
+
+                // Skip if theme config changed
                 if (sharedViewModel.hasThemeConfigChanged) return@collect
 
-                // Null safety for object + SOC
                 val soc = tellTales?.batterySoc ?: return@collect
                 if (soc == 0) return@collect
-
-                // Normalize nullable signals (important for stability)
+		isCharging = tellTales.charger == 1 || tellTales.charger == 2
                 val regenUnavailable = tellTales.regenUnavailable ?: 0
                 val modeHover = tellTales.modeHover ?: 0
                 val rideModes = tellTales.availableRideModes ?: -1
                 val hillHold = tellTales.hillHold ?: -1
+                val currentRideMode = tellTales.rideMode ?: -1
 
-                // -------------------------------
-                // SOC transition
-                // -------------------------------
+                val isCurrentlyGlide = currentRideMode == 1
+                val wasPreviouslyGlide = prevRideMode == 1
+
                 if (prevSoc != soc) {
-                    if (soc == 11) {
+                    if (soc == 11 && !isCurrentlyGlide) {
                         show(
                             ClusterNotification.Params(
                                 "SWITCHING TO GLIDE",
@@ -156,12 +158,18 @@ object NotificationManager {
                             )
                         )
                     }
+
+                   if (soc==6){
+                        show(
+                            ClusterNotification.Params(
+                                "BATTERY CRITICALLY LOW",
+                                "Hover mode will initiate at 5% battery"
+                            )
+                        )
+                    }
                     prevSoc = soc
                 }
 
-                // -------------------------------
-                // Regen availability transition
-                // -------------------------------
                 if (prevRegenUnavailable != regenUnavailable) {
                     if (regenUnavailable == 1) {
                         show(
@@ -181,10 +189,7 @@ object NotificationManager {
                     prevRegenUnavailable = regenUnavailable
                 }
 
-                // -------------------------------
-                // Hover mode transition
-                // -------------------------------
-                if (prevModeHover != modeHover) {
+             /*   if (prevModeHover != modeHover) {
                     if (modeHover == 1) {
                         show(
                             ClusterNotification.Params(
@@ -194,13 +199,9 @@ object NotificationManager {
                         )
                     }
                     prevModeHover = modeHover
-                }
-
-                // -------------------------------
-                // Ride mode transition
-                // -------------------------------
+                } */
                 if (prevRideModes != rideModes) {
-                    if (rideModes == 4) {
+                    if (rideModes == 4 && !wasPreviouslyGlide) {
                         show(
                             ClusterNotification.Params(
                                 "SWITCHED TO GLIDE",
@@ -211,9 +212,6 @@ object NotificationManager {
                     prevRideModes = rideModes
                 }
 
-                // -------------------------------
-                // Hill hold transition
-                // -------------------------------
                 if (prevHillHold != hillHold) {
                     if (hillHold == 4) {
                         show(
@@ -225,9 +223,10 @@ object NotificationManager {
                     }
                     prevHillHold = hillHold
                 }
+
+                prevRideMode = currentRideMode
             }
         }
-
         // 4. Charging
         scope.launch {
             carViewModel.chargeCtx.collect { charge ->
@@ -263,7 +262,8 @@ object NotificationManager {
                     //show(ClusterNotification.Params("TC MALFUNCTION", "Please contact customer support"))
                     isTcMalfunctionShown = true
                 }
-                /*if (miscInfo.hasFlag(VcuMiscFlags.STAT_VCU_CHARGER_FLAP_OPENED) && !isCharging) {
+		
+		/*if (miscInfo.hasFlag(VcuMiscFlags.STAT_VCU_CHARGER_FLAP_OPENED) && !isCharging) {
                     Log.e(TAG, "[MGR] ERROR: Charger flap opened")
                     show(ClusterNotification.Params("MOTOR ARM ERROR", "CHARGER LID OPENED"))
                 }*/
@@ -276,28 +276,14 @@ object NotificationManager {
                 }*/
             }
         }
-        scope.launch {
+      /*  scope.launch {
             carViewModel.swiftButton.collect { swiftButton ->
                 val button = Utilities.getButtonState(swiftButton)
                 if (button == ButtonNavigation.None) return@collect
+                Log.d(TAG, "Button pressed: $button")
                 handleButtonNavigation(button.ordinal)
             }
-        }
-
-        // 6. Hill Hold & Malfunctions
-    /*    scope.launch {
-            carViewModel.tellTales.collect { telltales ->
-                if (sharedViewModel.hasThemeConfigChanged) return@collect
-                if (telltales.hillHold == 4) {
-                    show(
-                        ClusterNotification.Params(
-                            "DISENGAGING HILL HOLD IN 5S",
-                            "Apply brakes for your safety"
-                        )
-                    )
-                }
-            }
-        }*/
+        } */
     }
 
     private fun showForChargeFlag(flag: ChargeStatusFlag) {
@@ -320,6 +306,7 @@ object NotificationManager {
                         ""
                     )
                 )
+                Log.d(TAG, "Cruise Control Unavailable")
             }
         }
     }

@@ -91,6 +91,7 @@ import com.suprajit.uvcluster.utils.Utilities.permissionsForSDKAboveR
 import com.suprajit.uvcluster.utils.Utilities.permissionsForSDKR
 import com.suprajit.uvcluster.utils.Utilities.setOnSoundClickListener
 import com.suprajit.uvcluster.utils.ViewModelFactory
+import android.os.UserHandle
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -106,7 +107,7 @@ import java.util.Date
 import java.util.Locale
 import com.suprajit.uvcluster.ui.features.settings.wifi.WifiAutoConnector
 import java.time.ZoneId
-
+import com.suprajit.uvcluster.MyViewModelProvider
 
 class MainActivity : AppCompatActivity() { 
 
@@ -233,7 +234,7 @@ class MainActivity : AppCompatActivity() {
             viewModel.saveBrightness(brightnessPercentage)
             checkSettingAndBrightness(brightnessPercentage)
 
-            if (viewModel.mode == getString(R.string.auto)) {
+   /*         if (viewModel.mode == getString(R.string.auto)) {
                 if (brightnessPercentage > 50) {
                     if (AppCompatDelegate.getDefaultNightMode() != AppCompatDelegate.MODE_NIGHT_NO) {
                         d("ALS", "Switching to DAY mode")
@@ -245,7 +246,7 @@ class MainActivity : AppCompatActivity() {
                         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
                     }
                 }
-            }
+            } */
         }
 
         override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
@@ -273,6 +274,7 @@ class MainActivity : AppCompatActivity() {
         if (SHOULD_INCLUDE_CAR_SERVICE) {
             d(tag, "All permissions granted")
             initCarViewModel()
+            MyViewModelProvider.init(carViewModel)
         }
         frameworkStartTime = android.os.SystemClock.elapsedRealtime()
         fotaReceiver = FotaReceiver()
@@ -689,6 +691,13 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
 
+		launch {
+            carViewModel.vehicleInfoRequest.collect {
+                d("Faizuuuuu", "vehicleInfoRequest cmd received, calling sendVehicleInfo")
+                sendVehicleInfo()
+            }
+        }
+
                 launch {
                     carViewModel.lockdown.collect { value ->
                         d("Faizuuuuu", "lockdown: $value")
@@ -748,7 +757,8 @@ class MainActivity : AppCompatActivity() {
                                 navController?.currentDestination?.id != R.id.hoverModeFragment &&
                                 navController?.currentDestination?.id != R.id.chargingFragment &&
                                 navController?.currentDestination?.id != R.id.thermalRunawayFragment &&
-				navController?.currentDestination?.id != R.id.mapFragment
+				navController?.currentDestination?.id != R.id.mapFragment &&
+                                navController?.currentDestination?.id != R.id.dashCamFragment
                             ) {
                                 navController?.navigate(R.id.dashboardFragment)
                             }
@@ -767,16 +777,7 @@ class MainActivity : AppCompatActivity() {
                         }
                 }
 
-                launch {
-                    viewModel.isHillHold.collect { state ->
-                        d("isHillHold", "State:$state")
-                        if (state){
-                            ivHillHold.visibility = View.VISIBLE
-                        }else{
-                            ivHillHold.visibility = View.INVISIBLE
-                        }
-                    }
-                }
+
                 launch {
                     carViewModel.ccOff.collect { value ->
                         d("Cruise", "cc off: $value")
@@ -818,6 +819,14 @@ class MainActivity : AppCompatActivity() {
                     carViewModel.tellTales.collect { tellTales ->
                         d("Faizu", "TellTales: $tellTales")
                         handleTellTales(tellTales)
+                    }
+                }
+            
+               launch {
+                    viewModel.isHillHold.collect { state ->
+                        if (state == null) return@collect  // skip until real value loaded
+                        d("isHillHold", "State:$state")
+                        ivHillHold.visibility = if (state) View.VISIBLE else View.INVISIBLE
                     }
                 }
 
@@ -1076,12 +1085,12 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
          super.onResume()
-        //navController?.navigate(R.id.debugFragment)
 
     // Ensure WiFi ON
             if (!wifiViewModel.isWifiEnabled()) {
         wifiViewModel.enableWifi(true)
     }
+
    
 
             
@@ -1100,6 +1109,24 @@ class MainActivity : AppCompatActivity() {
             SensorManager.SENSOR_DELAY_NORMAL
          )
       }
+     val prefs = getSharedPreferences("boot_prefs", Context.MODE_PRIVATE)
+     val isBoot = prefs.getBoolean("is_boot", false)
+
+     if (isBoot) {
+         d("MainActivity", "🚀 Launched after boot → checking storage")
+
+         checkStorageAndTriggerCleanup()
+
+         prefs.edit().putBoolean("is_boot", false).apply()
+     }
+      
+    d("MainActivity","onResume: DefaultNightMode: BootCompleted Flag :: ${carViewModel.bootCompleted}")
+
+    if (!carViewModel.bootCompleted){
+            AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
+            viewModel.saveMode(getString(R.string.night))
+            carViewModel.onBootCompleted()
+        }
       
        sendClusterReady()
 
@@ -1140,6 +1167,25 @@ class MainActivity : AppCompatActivity() {
 
     }
 
+
+     private fun sendVehicleInfo() {
+        val CLUSTER_TO_VCU_VEHICLE_INFO = 0x21700300
+        val buffer = java.nio.ByteBuffer.allocate(51)
+        buffer.order(java.nio.ByteOrder.LITTLE_ENDIAN)
+
+        d(tag, "Packing Vehicle Info -> IMEI: $viewModel.imeiNumber | VIN: $viewModel.vinTextValue")
+        buffer.put(viewModel.imeiNumber.toByteArray(Charsets.US_ASCII).copyOf(16))
+        buffer.put(viewModel.vinTextValue.toByteArray(Charsets.US_ASCII).copyOf(32))
+    
+        // Hardcoded firmware and build versions (0)
+        buffer.put(0.toByte()) // fw_ver_major
+        buffer.put(0.toByte()) // fw_ver_minor
+        buffer.put(0.toByte()) // build_number
+        val payload = buffer.array()
+
+        sendByteArray(CLUSTER_TO_VCU_VEHICLE_INFO,payload)
+        d(tag, "VehicleInfo sent")
+    }
 
 
 //    private fun startHeartbeat() {
@@ -1544,7 +1590,7 @@ class MainActivity : AppCompatActivity() {
                     R.drawable.ic_battery_error
                 )
             )
-
+           ivRightWarning3.visibility = View.VISIBLE
         } else {
             ivRightWarning3.visibility = View.INVISIBLE
         }
@@ -1686,7 +1732,7 @@ class MainActivity : AppCompatActivity() {
         ivAbsState.visibility = View.VISIBLE
         absWarningJob?.cancel()
         absWarningJob = null
-        ivAbsState.alpha = 1f
+	ivAbsState.alpha = 1f
         when (absWarning) {
             0 -> {
                 showAbsMode(absMode)
@@ -1699,7 +1745,7 @@ class MainActivity : AppCompatActivity() {
             2 -> {
                 ivAbsState.setImageDrawable(getDrawable(this, R.drawable.ic_abs_malfunction))
                 absWarningJob = blinkImage(ivAbsState)
-                ivAbsState.alpha = 1f
+		ivAbsState.alpha = 1f
             }
         }
     }
@@ -1735,7 +1781,7 @@ class MainActivity : AppCompatActivity() {
                 ivTraction.setImageDrawable(getDrawable(this, R.drawable.ic_mtc))
                 tractionBlinkJob = blinkImage(ivTraction)
                 ivTraction.tag = R.drawable.ic_mtc
-                ivTraction.alpha = 1f
+		ivTraction.alpha = 1f
             }
             4->{
                 ivTraction.setImageDrawable(getDrawable(this, R.drawable.ic_mtc_malfunction))
@@ -1788,13 +1834,14 @@ class MainActivity : AppCompatActivity() {
                     ivTraction.tag = R.drawable.ic_mtc_3_white
                 }
             }
+
         }
     }
 
     private fun stopTractionBlinking() {
         tractionBlinkJob?.cancel()
         tractionBlinkJob = null
-        ivTraction.alpha = 1f
+	ivTraction.alpha = 1f
     }
 
     private fun handleHazardLamp(hazard: Boolean) {
@@ -1833,11 +1880,19 @@ class MainActivity : AppCompatActivity() {
 
     private fun updateHillHold(state: Int) {
         stopHillHoldBlinking()
+        val isHillHoldOn=viewModel.isHillHold.value==true
+        d("update_hillhold", "HillHold_state:$state")
+        d("update_hillhold", "isHillHoldOn:$isHillHoldOn")
         when (state) {
             1 -> {
                 
                 ivHillHold.setImageDrawable(getDrawable(this, R.drawable.ic_hill_hold_malfunction))
                 ivHillHold.tag = R.drawable.ic_hill_hold_malfunction
+                 if (isHillHoldOn) {
+                        ivHillHold.visibility = View.VISIBLE
+                    }else{
+                        ivHillHold.visibility = View.INVISIBLE
+                    }
             }
 
             2 -> {
@@ -1849,13 +1904,33 @@ class MainActivity : AppCompatActivity() {
                     ivHillHold.setImageDrawable(getDrawable(this, R.drawable.ic_hill_hold_on_white))
                     ivHillHold.tag = R.drawable.ic_hill_hold_on_white
                 }
+                  if (isHillHoldOn) {
+                        ivHillHold.visibility = View.VISIBLE
+                    }else{
+                        ivHillHold.visibility = View.INVISIBLE
+                    }
             }
 
             3 -> {
                
                 ivHillHold.setImageDrawable(getDrawable(this, R.drawable.ic_hill_hold_active))
                 ivHillHold.tag = R.drawable.ic_hill_hold_active
+                 if (isHillHoldOn) {
+                        ivHillHold.visibility = View.VISIBLE
+                    }else{
+                        ivHillHold.visibility = View.INVISIBLE
+                    }
             }
+
+          4->{
+                    ivHillHold.setImageDrawable(getDrawable(this, R.drawable.ic_hill_hold_active))
+                    ivHillHold.tag = R.drawable.ic_hill_hold_active
+                    if (isHillHoldOn) {
+                        ivHillHold.visibility = View.VISIBLE
+                    }else{
+                        ivHillHold.visibility = View.INVISIBLE
+                    }
+                }
 
             else -> ivHillHold.visibility = View.INVISIBLE
         }
@@ -2014,6 +2089,7 @@ class MainActivity : AppCompatActivity() {
             val packet = byteArrayOf(dataVal)
             d("Cluster_ready", "Sending CLUSTER READY to VCU")
             sendByteArray(CLUSTER_TO_VCU_CLUSTER_READY, packet)
+	    sendVehicleInfo()
             isClusterReady = true
         } else {
             d("Cluster_ready", "Already sent, skipping")
@@ -2184,6 +2260,33 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
+
+    private fun checkStorageAndTriggerCleanup() {
+
+    val stat = android.os.StatFs(android.os.Environment.getDataDirectory().path)
+
+    val total = stat.totalBytes.toDouble()
+    val used = total - stat.availableBytes
+    val percent = (used / total) * 100
+
+    android.util.Log.d("StorageCheck", "Used: $percent%")
+
+    if (percent > 60) {
+
+        val intent = android.content.Intent("com.example.database.ACTION_STORAGE_CLEANUP").apply {
+            setPackage("com.example.database")
+            putExtra("used_pct", percent)
+        }
+
+        try {
+            applicationContext.sendBroadcastAsUser(intent, UserHandle.ALL) // safer than sendBroadcastAsUser
+            android.util.Log.d("StorageCheck", "✅ Broadcast sent")
+        } catch (e: Exception) {
+            android.util.Log.e("StorageCheck", "❌ Failed", e)
+        }
+    }
+    }
+ 
 
     fun blinkHazard(right: ImageView, left: ImageView) {
         val rightAnim = ObjectAnimator.ofFloat(right, View.ALPHA, 1f, 0f).apply {

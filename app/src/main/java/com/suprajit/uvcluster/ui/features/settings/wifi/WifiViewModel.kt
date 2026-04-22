@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.lifecycle.viewModelScope
+import kotlin.collections.map
 
 /**
  * ViewModel responsible for managing Wi-Fi operations and exposing scan results to the UI.
@@ -52,11 +53,16 @@ class WifiViewModel(private val wifiRepository: WifiRepository): ViewModel() {
     val onWifiStateChange : StateFlow<Boolean>
         get() = _wifiState.asStateFlow()
 
+    private var _connectedSSID = MutableStateFlow<String?>(null)
+    val connectedSSID : StateFlow<String?>
+        get() = _connectedSSID.asStateFlow()
 
     private var _reconnectSSID = MutableStateFlow<String?>(null)
     val reconnectSSID : StateFlow<String?>
         get() = _reconnectSSID.asStateFlow()
 
+    private val _selectedItem = MutableStateFlow<String?>(null)
+    val selectedItem: StateFlow<String?> = _selectedItem.asStateFlow()
 
 
     fun startSignalMonitoring() {
@@ -132,31 +138,16 @@ class WifiViewModel(private val wifiRepository: WifiRepository): ViewModel() {
     fun scanResult() {
         wifiRepository.scanResult { results ->
             Log.d(TAG, "scanResult:  wifiRepository.scanResult :: $results")
-
-            val connectedSsid = getConnectedWifiSSID()
-
-            val wifiList = results
-                .filter { it.SSID.isNotBlank() }
-                .map { scanResult ->
-
-                    val level = android.net.wifi.WifiManager
-                        .calculateSignalLevel(scanResult.level, 6)
-
-                    // If this is connected network → update toolbar signal
-                    if (scanResult.SSID == connectedSsid) {
-                        _currentSignalLevel.value = level
-                    }
-
-                    WifiUiModel(
-                        ssid = scanResult.SSID,
-                        level = level,
-                        isSecured = scanResult.capabilities.contains("WPA")
-                    )
-                }
-                .distinctBy { it.ssid }
-
-            Log.d(TAG, "scanResult: Final Wifi :: $wifiList ")
-            _scanResult.value = wifiList
+            _scanResult.value = results.map { result ->
+                WifiUiModel(
+                    ssid = result.SSID,
+                    level = android.net.wifi.WifiManager.calculateSignalLevel(result.level, 6), // normalize to 0–5
+                    isSecured = result.capabilities.contains("WEP") ||
+                            result.capabilities.contains("WPA") ||
+                            result.capabilities.contains("WPA2") ||
+                            result.capabilities.contains("WPA3")
+                )
+            }
         }
     }
 
@@ -196,6 +187,16 @@ class WifiViewModel(private val wifiRepository: WifiRepository): ViewModel() {
         }
     }
 
+    fun isNetworkConnected(): Boolean {
+        val ssid = _connectedSSID.value
+        return ssid != null && ssid != "<unknown ssid>"
+    }
+
+
+    fun isConnectionStateActive(): Boolean{
+        return _connectionState.value
+    }
+
     fun enableWifi(enable:Boolean){
         wifiRepository.enableWifi(enable)
     }
@@ -207,6 +208,9 @@ class WifiViewModel(private val wifiRepository: WifiRepository): ViewModel() {
             Log.d(TAG, "wifiConnected: Connection state Changed :: $isConnected")
             _connectionState.value = isConnected
         }
+        getConnectedSSID()
+        getSavedNetworkList()
+        startScan()
     }
 
     ///WIFFI
@@ -214,6 +218,12 @@ class WifiViewModel(private val wifiRepository: WifiRepository): ViewModel() {
         wifiRepository.startScan()
     }
 
+    fun getConnectedSSID() {
+        wifiRepository.connectedSSID{ssid->
+            _connectedSSID.value = ssid
+        }
+
+    }
 
     fun wifiReconnectRequest() {
         wifiRepository.reconnectRequestSSID{ssid->
@@ -221,8 +231,14 @@ class WifiViewModel(private val wifiRepository: WifiRepository): ViewModel() {
         }
 
     }
+
+    fun selectItem(ssid: String) {
+        _selectedItem.value = ssid
+    }
+
     ///END
 
 }
+
 
 

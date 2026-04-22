@@ -149,6 +149,8 @@ object VcuMiscFlags {
     const val STAT_VCU_RDR_SENSOR_ACTIVE = 62
     const val STAT_VCU_RDR_SENSOR_INSPECTION = 63
 
+    /* -------- Status Word Group 2 (64–84) -------- */
+
     const val STAT_VCU_RDR_REAR_CRC_ERR = 64
     const val STAT_VCU_RDR_FRONT_CRC_ERR = 65
     const val STAT_VCU_MC_SURGE_MODE = 66
@@ -189,9 +191,6 @@ object VcuMiscFlags {
     const val STAT_VCU_MC_IN_BAAS_LOCKDOWN = 101
     const val STAT_VCU_DSP_IMEI_UPD_EVENT = 102
     const val STAT_VCU_DSP_VIN_UPD_EVENT = 103
-
-    /* -------- Unused (104–127) -------- */
-
     const val STAT_VCU_UNUSED_104 = 104
     const val STAT_VCU_UNUSED_105 = 105
     const val STAT_VCU_UNUSED_106 = 106
@@ -217,8 +216,9 @@ object VcuMiscFlags {
     const val STAT_VCU_UNUSED_126 = 126
     const val STAT_VCU_UNUSED_127 = 127
 
+
     /** Total number of valid misc status flags */
-    const val MAX_MISC_STATUS_FLAGS = 128
+    const val MAX_MISC_STATUS_FLAGS =128 //previously 85
 }
 
 

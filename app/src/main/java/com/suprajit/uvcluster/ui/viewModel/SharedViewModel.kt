@@ -9,6 +9,7 @@ import androidx.lifecycle.viewModelScope
 import com.suprajit.uvcluster.domain.dataModel.ChildItem
 import com.suprajit.uvcluster.domain.dataModel.RangeLimit
 import com.suprajit.uvcluster.domain.manager.PreferenceManager
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -43,20 +44,19 @@ class SharedViewModel(private val preferenceManager: PreferenceManager) : ViewMo
         get() = preferenceManager.isRadarOn
     val isConsoleAlertsOn: Boolean
         get() = preferenceManager.isConsoleAlertsOn
-    private val _isHillHold = MutableStateFlow(preferenceManager.isHillHold)
-    val isHillHold: StateFlow<Boolean> = _isHillHold
+    // SharedViewModel.kt
+    private val _isHillHold = MutableStateFlow<Boolean?>(null) // null = not yet loaded
+    val isHillHold: StateFlow<Boolean?> = _isHillHold
 
     init {
-        _isHillHold.value = preferenceManager.isHillHold
+        viewModelScope.launch(Dispatchers.IO) {
+            _isHillHold.value = preferenceManager.isHillHold
+        }
     }
 
     fun setHillHold(value: Boolean) {
         _isHillHold.value = value
-
     }
-
-
-
     private var _afChildClick: MutableLiveData<Boolean> = MutableLiveData()
     val afChildClick: LiveData<Boolean>
         get() = _afChildClick
@@ -85,6 +85,19 @@ class SharedViewModel(private val preferenceManager: PreferenceManager) : ViewMo
     private var _radarOn: MutableStateFlow<Boolean> =
         MutableStateFlow(preferenceManager.isRadarOn)
     val radarOn: StateFlow<Boolean> = _radarOn
+    
+    val vinTextValue: String
+        get() = preferenceManager.vinNumber
+
+    fun saveVimNumber(vimNumber: String){
+        preferenceManager.saveVinNumber(vimNumber)
+    }
+
+    val imeiNumber: String
+        get() = preferenceManager.imeiNumber
+    fun saveIemiNumber(iemiNumber: String){
+        preferenceManager.saveIemiNumber(iemiNumber)
+    }
 
     fun saveUpdate(shouldUpdate: Boolean) {
         preferenceManager.saveUpdate(shouldUpdate)
