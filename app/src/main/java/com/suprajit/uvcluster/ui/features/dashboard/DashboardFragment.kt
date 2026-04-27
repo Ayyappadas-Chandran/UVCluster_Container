@@ -100,6 +100,8 @@ class DashboardFragment : Fragment() {
     private lateinit var ivReset: ImageView
     private lateinit var tvRideUnit: TextView
     private lateinit var ivMtrArmed: ImageView
+    private lateinit var ivCruiseEnabled: ImageView
+    private lateinit var ivCruiseHighlight: ImageView
 
     private val carViewModel by activityViewModels<CarViewModel> { ViewModelFactory(context = requireContext()) }
     private val viewModel by activityViewModels<DashboardViewModel> { ViewModelFactory(context = requireContext()) }
@@ -524,6 +526,21 @@ class DashboardFragment : Fragment() {
                         updateUi(uiState)
                     }
                 }
+               launch {
+                   carViewModel.ccActive.collect { value ->
+                       d("DashboardFragment", "Cruise cc active: $value")
+                       if (value) {
+                           ivCruiseEnabled.visibility = View.VISIBLE
+                           ivCruiseHighlight.visibility = View.VISIBLE
+                       }
+                       else
+                       {
+                           ivCruiseEnabled.visibility = View.INVISIBLE
+                           ivCruiseHighlight.visibility = View.INVISIBLE
+                       }
+
+                   }
+               }
             }
         }
     }
@@ -617,12 +634,12 @@ class DashboardFragment : Fragment() {
                 findNavController().navigate(R.id.action_dashboardFragment_to_menuFragment)
             }
            ButtonNavigation.Enter.ordinal -> {
-                NotificationManager.show(
+                /*NotificationManager.show(
                     ClusterNotification.Params(
                         "Cruise Control Unavailable",
                         ""
                     )
-                )
+                )*/
             }
 
         }
@@ -774,6 +791,8 @@ class DashboardFragment : Fragment() {
         tvSpeedUnit = view.findViewById(R.id.tvSpeedUnit)
         ivBallisticPlus = view.findViewById(R.id.ivBallisticPlus)
         ivMtrArmed = view.findViewById(R.id.ivMtrArmed)
+        ivCruiseEnabled = view.findViewById(R.id.ivCruiseEnabled)
+        ivCruiseHighlight = view.findViewById(R.id.ivCruiseHighlight)
         unit = sharedViewModel.distanceUnit
         tvWhPerKm.setOnClickListener {
             findNavController().navigate(R.id.hoverModeFragment)

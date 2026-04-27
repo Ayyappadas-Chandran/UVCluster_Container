@@ -12,6 +12,7 @@ import android.util.Log.e
 import com.suprajit.uvcluster.utils.Utilities.PROP_ID_ABS_MODE
 import com.suprajit.uvcluster.utils.Utilities.PROP_ID_ABS_MODE_STATUS
 import com.suprajit.uvcluster.utils.Utilities.PROP_ID_CHARGER_EVT
+import com.suprajit.uvcluster.utils.Utilities.PROP_ID_CRUISE_CONTROL
 import com.suprajit.uvcluster.utils.Utilities.PROP_ID_DISPLAY_BRIGHTNESS
 import com.suprajit.uvcluster.utils.Utilities.PROP_ID_FOTA_UPDATE
 import com.suprajit.uvcluster.utils.Utilities.PROP_ID_HILL_HOLD_ICON
@@ -98,6 +99,7 @@ class CarServiceWrapper(private val context: Context) {
                 registerProperId(PROP_ID_MC_THERMAL)
                 registerProperId(PROP_ID_MC_NO_ARM)
 		registerProperId(PROP_ID_CHARGER_EVT)
+                registerProperId(PROP_ID_CRUISE_CONTROL)
                 d("VHALData", "All properties registered safely")
             } catch (ex: Exception) {
                 e("VHALData", "Exception registering props: ${ex.message}")

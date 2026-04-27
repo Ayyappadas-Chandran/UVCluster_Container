@@ -491,6 +491,29 @@
         />
 
     <ImageView
+        android:id="@+id/ivCruiseEnabled"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:src="@drawable/cruise_enabled"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:layout_editor_absoluteX="453dp"
+        app:layout_constraintRight_toRightOf="@id/ivBgBottomRightRadar"
+        app:layout_constraintLeft_toLeftOf="@id/ivBgBottomLeftRadar"
+        android:visibility="invisible"
+        />
+    <ImageView
+        android:id="@+id/ivCruiseHighlight"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:src="@drawable/cruise_highlight"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:layout_editor_absoluteX="453dp"
+        app:layout_constraintRight_toRightOf="@id/ivBgBottomRightRadar"
+        app:layout_constraintLeft_toLeftOf="@id/ivBgBottomLeftRadar"
+        android:visibility="invisible"
+        />
+
+    <ImageView
         android:id="@+id/ivBgBottomRightRadar"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

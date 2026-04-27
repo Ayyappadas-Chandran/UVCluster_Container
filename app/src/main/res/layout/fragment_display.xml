@@ -135,81 +135,6 @@
                 android:progressDrawable="@drawable/progress_indicator_grey" />
         </LinearLayout>
 
-
-        <com.suprajit.uvcluster.ui.customWidget.BrutalTypeTextView
-            android:id="@+id/tvTheme"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="32dp"
-            android:text="@string/theme"
-            android:textFontWeight="400"
-            android:textColor="@color/unSelectedTitle"
-            android:textSize="24sp"
-            app:layout_constraintStart_toStartOf="@id/llBrightness"
-            app:layout_constraintTop_toBottomOf="@id/llBrightnessBar" />
-
-        <androidx.constraintlayout.widget.ConstraintLayout
-            android:id="@+id/llTheme"
-            android:layout_width="628dp"
-            android:layout_height="80dp"
-            android:layout_marginTop="16dp"
-            android:background="@drawable/bg_stroke"
-            app:layout_constraintStart_toStartOf="@id/tvTheme"
-            app:layout_constraintTop_toBottomOf="@id/tvTheme">
-
-            <com.suprajit.uvcluster.ui.customWidget.BrutalTypeTextView
-                android:id="@+id/tvParallax"
-                android:layout_width="306dp"
-                android:layout_height="64dp"
-                android:textFontWeight="500"
-                android:layout_marginStart="8dp"
-                android:background="@color/backgroundDeselected"
-                android:gravity="center"
-                android:text="@string/parallax"
-                android:textColor="@color/white"
-                android:textSize="24sp"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
-
-            <ImageView
-                android:id="@+id/ivParallaxSelect"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:contentDescription="@string/parallax_selected"
-                android:src="@drawable/ic_selection"
-                android:visibility="invisible"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintStart_toEndOf="@id/tvParallax"
-                app:layout_constraintTop_toTopOf="parent" />
-
-            <ImageView
-                android:id="@+id/ivRadarSelect"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="8dp"
-                android:contentDescription="@string/radar_selected"
-                android:rotation="180"
-                android:src="@drawable/ic_selection"
-                android:visibility="invisible"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toStartOf="@id/tvRadar"
-                app:layout_constraintTop_toTopOf="parent" />
-
-            <com.suprajit.uvcluster.ui.customWidget.BrutalTypeTextView
-                android:id="@+id/tvRadar"
-                android:layout_width="306dp"
-                android:layout_height="64dp"
-                android:textFontWeight="500"
-                android:gravity="center"
-                android:text="@string/radar"
-                android:textSize="24sp"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintStart_toEndOf="@id/tvParallax"
-                app:layout_constraintTop_toTopOf="parent" />
-        </androidx.constraintlayout.widget.ConstraintLayout>
-
         <com.suprajit.uvcluster.ui.customWidget.BrutalTypeTextView
             android:id="@+id/tvMode"
             android:layout_width="wrap_content"
@@ -220,7 +145,7 @@
             android:textColor="@color/unSelectedTitle"
             android:textSize="24sp"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/llTheme" />
+            app:layout_constraintTop_toBottomOf="@id/llBrightnessBar" />
 
         <HorizontalScrollView
             android:layout_width="wrap_content"
@@ -234,9 +159,7 @@
                 android:layout_height="80dp"
                 android:layout_marginTop="16dp"
                 android:layout_marginBottom="20dp"
-                android:background="@drawable/bg_stroke"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/tvMode">
+                android:background="@drawable/bg_stroke">
 
                 <com.suprajit.uvcluster.ui.customWidget.BrutalTypeTextView
                     android:id="@+id/tvModeAuto"

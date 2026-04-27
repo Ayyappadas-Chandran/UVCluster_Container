@@ -13,6 +13,7 @@ data class PerformanceUiState(
     val isBallisticPlus: Boolean = false,
     val regenValue: Int = 0,
     val isMonoAbs: Boolean = false,
+    val isCruise: Boolean = false,
     val tractionLevel: String = "Off",
     val focusedState: FocusedState = FocusedState.BallisticPlus,
 )
@@ -23,6 +24,7 @@ enum class FocusedState {
     HillHold,
     BallisticPlus,
     Abs,
+    CruiseControl,
     TractionControl
 }
 
@@ -39,6 +41,7 @@ class PerformanceViewModel(private val preferenceManager: PreferenceManager) :
                 regenValue = preferenceManager.regenValue,
                 isBallisticPlus = preferenceManager.isBallisticPlus,
                 isMonoAbs = preferenceManager.isMonoAbs,
+                isCruise = preferenceManager.isCruise,
                 tractionLevel = preferenceManager.tractionControlLevel
             )
         }
@@ -72,6 +75,11 @@ class PerformanceViewModel(private val preferenceManager: PreferenceManager) :
     fun saveAbs(isMono: Boolean) {
         preferenceManager.saveCustomModeAbs(isMono)
         _uiState.update { it.copy(isMonoAbs = isMono) }
+    }
+
+    fun saveCruise(isCruise: Boolean) {
+        preferenceManager.saveCruise(isCruise)
+        _uiState.update { it.copy(isCruise = isCruise) }
     }
 
     fun saveTractionLevel(tractionLevel: String) {

@@ -24,6 +24,7 @@ import android.os.Looper
 import android.provider.Settings
 import android.telephony.TelephonyManager
 import android.util.Log.d
+import android.util.Log.e
 import android.util.TypedValue
 import android.view.View
 import android.view.WindowInsets
@@ -92,6 +93,8 @@ import com.suprajit.uvcluster.utils.Utilities.permissionsForSDKR
 import com.suprajit.uvcluster.utils.Utilities.setOnSoundClickListener
 import com.suprajit.uvcluster.utils.ViewModelFactory
 import android.os.UserHandle
+import androidx.appcompat.content.res.AppCompatResources
+import androidx.fragment.app.viewModels
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -108,6 +111,8 @@ import java.util.Locale
 import com.suprajit.uvcluster.ui.features.settings.wifi.WifiAutoConnector
 import java.time.ZoneId
 import com.suprajit.uvcluster.MyViewModelProvider
+import com.suprajit.uvcluster.ui.features.controls.performance.PerformanceViewModel
+import kotlinx.coroutines.flow.drop
 
 class MainActivity : AppCompatActivity() { 
 
@@ -172,6 +177,7 @@ class MainActivity : AppCompatActivity() {
     private val dataViewModel by viewModels<DataViewModel> { ViewModelFactory(context = this) }
     private val carViewModel by viewModels<CarViewModel> { ViewModelFactory(context = this) }
     private val viewModel by viewModels<SharedViewModel> { ViewModelFactory(context = this) }
+    private val performanceViewModel by viewModels<PerformanceViewModel> { ViewModelFactory(context = this) }
     private var haveDashcam = false
     private lateinit var fotaReceiver: FotaReceiver
     private val timeHandler = Handler(Looper.getMainLooper()) // rtc v1.4(rtc)
@@ -187,6 +193,7 @@ class MainActivity : AppCompatActivity() {
     private var isDashboard = false
     private var alsJob: Job? = null
     private var isClusterReady=false
+    private var isCCOff = true
 
     /**
      * Register the permissions callback, which handles the user's response to the system permissions dialog.
@@ -361,7 +368,7 @@ class MainActivity : AppCompatActivity() {
                     this, R.drawable.ic_toolbar_bluetooth
                 )
             )
-            ivLeftWarning1.setImageDrawable(getDrawable(this, R.drawable.ic_cruse_control))
+            //ivLeftWarning1.setImageDrawable(getDrawable(this, R.drawable.ic_cruse_control))
            // ivNetwork.setImageDrawable(getDrawable(this, R.drawable.ic_toolbar_network))
 	    ivNetwork.setColorFilter(ContextCompat.getColor(this, textColor))
             val currentResMtc = ivTraction.tag as? Int
@@ -410,7 +417,7 @@ class MainActivity : AppCompatActivity() {
              //   )
            // )
 
-            ivLeftWarning1.setImageDrawable(getDrawable(this, R.drawable.ic_curse_control_white))
+            //ivLeftWarning1.setImageDrawable(getDrawable(this, R.drawable.ic_curse_control_white))
             val currentResMtc = ivTraction.tag as? Int
             d("CurrentState", "CurrentRes : $currentResMtc drawableId:${R.drawable.ic_mtc_1}")
 
@@ -777,10 +784,11 @@ class MainActivity : AppCompatActivity() {
                         }
                 }
 
-
+                //skipping the first value. Because vcu is sending ccOff false everytime after keycycle.
                 launch {
-                    carViewModel.ccOff.collect { value ->
+                    carViewModel.ccOff.drop(1).collect { value ->
                         d("Cruise", "cc off: $value")
+                        isCCOff = value
                         ivLeftWarning1.visibility = View.INVISIBLE
                     }
                 }
@@ -802,6 +810,16 @@ class MainActivity : AppCompatActivity() {
                             ivLeftWarning1.setImageDrawable(getDrawable(R.drawable.ic_cc_error))
                             ivLeftWarning1.visibility = View.VISIBLE
                         }
+                        //because the cc off will show true even if cruise control is disabled. And made isCCOff as true initially
+                        else {
+                            if (isCCOff) {
+                                ivLeftWarning1.visibility = View.INVISIBLE
+                            }
+                            else
+                            {
+                                ivLeftWarning1.visibility = View.VISIBLE
+                            }
+                        }
 
                     }
                 }
@@ -822,11 +840,19 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
             
-               launch {
+                launch {
                     viewModel.isHillHold.collect { state ->
                         if (state == null) return@collect  // skip until real value loaded
                         d("isHillHold", "State:$state")
-                        ivHillHold.visibility = if (state) View.VISIBLE else View.INVISIBLE
+                        ivHillHold.visibility = View.VISIBLE
+                        //ivHillHold.visibility = if (state) View.VISIBLE else View.INVISIBLE
+                    }
+                }
+                launch {
+                    carViewModel.cruise.collect { cruise ->
+                        d("CRUISE", "Cruise value : $cruise")
+                        val isCruise = cruise == 1
+                        performanceViewModel.saveCruise(isCruise)
                     }
                 }
 
@@ -1107,18 +1133,11 @@ class MainActivity : AppCompatActivity() {
             ambientSensorListener,
             it,
             SensorManager.SENSOR_DELAY_NORMAL
-         )
-      }
-     val prefs = getSharedPreferences("boot_prefs", Context.MODE_PRIVATE)
-     val isBoot = prefs.getBoolean("is_boot", false)
-
-     if (isBoot) {
-         d("MainActivity", "🚀 Launched after boot → checking storage")
+        )
+    }
 
          checkStorageAndTriggerCleanup()
 
-         prefs.edit().putBoolean("is_boot", false).apply()
-     }
       
     d("MainActivity","onResume: DefaultNightMode: BootCompleted Flag :: ${carViewModel.bootCompleted}")
 
@@ -1753,7 +1772,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun showAbsMode(absMode: Int) {
         when (absMode) {
-            1 -> ivAbsState.setImageDrawable(getDrawable(this, R.drawable.ic_abs_mono))
+            1 -> ivAbsState.setImageDrawable(getDrawable(this, R.drawable.abs_final))
             else -> ivAbsState.visibility = View.INVISIBLE
         }
     }

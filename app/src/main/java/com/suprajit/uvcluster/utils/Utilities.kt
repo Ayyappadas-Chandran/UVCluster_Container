@@ -82,6 +82,7 @@ object Utilities {
     const val PROP_ID_MC_NO_ARM = 0x21410417
     const val PROP_ID_ALS_INFO = 0x2170031F
     const val PROP_ID_CHARGER_EVT = 0x214003A1
+    const val PROP_ID_CRUISE_CONTROL = 0x2140041D
     const val SHOULD_INCLUDE_CAR_SERVICE = true
     const val IMAGE_PORTRAIT = "portrait"
     const val IMAGE_LANDSCAPE = "landscape"

@@ -402,6 +402,9 @@
     <string name="rec_60"><![CDATA[REC<60]]></string>
     <string name="rec_40"><![CDATA[REC<40]]></string>
     <string name="surge_mode">SURGE MODE</string>
+    <string name="cruise_control">Cruise Control</string>
+    <string name="cruise_on_select">Cruise On Select</string>
+    <string name="cruise_off_select">Cruise Off Select</string>
 </resources>
 
 

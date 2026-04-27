@@ -1,7 +1,12 @@
 package com.suprajit.uvcluster.ui.features.settings.data
 
+import android.content.Context
+import android.content.Intent
 import android.os.Bundle
+import android.os.UserHandle
+import android.util.Log
 import android.util.Log.d
+import android.util.Log.e
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -19,6 +24,8 @@ import com.suprajit.uvcluster.domain.ennumerate.ButtonNavigation
 import com.suprajit.uvcluster.ui.viewModel.SharedViewModel
 import com.suprajit.uvcluster.utils.Utilities.setOnSoundClickListener
 import com.suprajit.uvcluster.utils.ViewModelFactory
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 class DataFragment : Fragment() {
@@ -26,6 +33,9 @@ class DataFragment : Fragment() {
     private lateinit var tvDataOff: TextView
     private lateinit var ivDataOnSelect: ImageView
     private lateinit var ivDataOffSelect: ImageView
+    private lateinit var tvCollectLog: TextView
+    private lateinit var tvHabitatreset: TextView
+    private val TAG = "DataFragment"
     private val sharedViewModel by activityViewModels<SharedViewModel> { ViewModelFactory(context = requireContext()) }
     private val viewModel by activityViewModels<DataViewModel> { ViewModelFactory(context = requireContext()) }
 
@@ -78,6 +88,8 @@ class DataFragment : Fragment() {
         tvDataOff = view.findViewById(R.id.tvDataOff)
         ivDataOnSelect = view.findViewById(R.id.ivDataOnSelect)
         ivDataOffSelect = view.findViewById(R.id.ivDataOffSelect)
+        tvCollectLog = view.findViewById(R.id.tvCollectLog)
+        tvHabitatreset = view.findViewById(R.id.tvHabitatreset)
     }
 
     /**
@@ -86,11 +98,27 @@ class DataFragment : Fragment() {
     private fun initClickListener() {
         tvDataOn.setOnSoundClickListener(requireContext()) {
             sharedViewModel.handleSettingsChildClick(true)
-            viewModel.setDataState(false)
+            viewModel.setDataState(true)
         }
         tvDataOff.setOnSoundClickListener(requireContext()) {
             sharedViewModel.handleSettingsChildClick(true)
-            viewModel.setDataState(false)
+            viewModel.setDataState(true)
+        }
+        tvCollectLog.setOnSoundClickListener(requireContext()) {
+            startLogging(requireContext())
+        }
+        tvHabitatreset.setOnSoundClickListener(requireContext()) {
+            val intent = Intent("com.example.database.ACTION_RETAIN_LOGS").apply {
+                setPackage("com.example.database")
+//              //putExtra("used_pct", usedPct)
+            }
+
+            try {
+                //requireContext().sendBroadcastAsUser(intent, UserHandle.ALL)
+                d(TAG, "✅ Broadcast SENT successfully")
+            } catch (e: Exception) {
+                e(TAG, "❌ Broadcast FAILED", e)
+            }
         }
     }
 
@@ -115,5 +143,25 @@ class DataFragment : Fragment() {
         tvDataOff.setTextColor(if (!isEnabled) selectedTextColor else unselectedTextColor)
         tvDataOn.setBackgroundColor(if (isEnabled) selectedBackgroundColor else unselectedBackgroundColor)
         tvDataOff.setBackgroundColor(if (!isEnabled) selectedBackgroundColor else unselectedBackgroundColor)
+    }
+    fun startLogging(context: Context) {
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val process = Runtime.getRuntime().exec(arrayOf("sh", "/system/etc/onDemand_logcat.sh"))
+
+                // Read stdout
+                val stdout = process.inputStream.bufferedReader().readText()
+                // Read stderr — this is where your error will be hiding
+                val stderr = process.errorStream.bufferedReader().readText()
+
+                val exitCode = process.waitFor()
+
+                d("LOGGING", "Exit code: $exitCode")
+                d("LOGGING", "stdout: $stdout")
+                e("LOGGING", "stderr: $stderr")  // <-- Check this in logcat
+            } catch (e: Exception) {
+                e("LOGGING", "Exception: ${e.message}", e)
+            }
+        }
     }
 }

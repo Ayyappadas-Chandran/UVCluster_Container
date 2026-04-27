@@ -72,9 +72,13 @@ class PerformanceFragment : Fragment() {
     private lateinit var ivSurgeModeOffSelect: ImageView
     private lateinit var tvDualAbsCustom: TextView
     private lateinit var tvMonoAbsCustom: TextView
+    private lateinit var tvCruiseOff: TextView
+    private lateinit var tvCruiseOn: TextView
     private lateinit var ivSurgeModeOnSelect: ImageView
     private lateinit var ivDualSelect: ImageView
     private lateinit var ivMonoSelect: ImageView
+    private lateinit var tvCruiseSelectOff: ImageView
+    private lateinit var tvCruiseSelectOn: ImageView
     private val viewModel by viewModels<PerformanceViewModel> { ViewModelFactory(context = requireContext()) }
     private val carViewModel by activityViewModels<CarViewModel> { ViewModelFactory(context = requireContext()) }
     private val sharedViewModel by activityViewModels<SharedViewModel> { ViewModelFactory(context = requireContext()) }
@@ -143,6 +147,13 @@ class PerformanceFragment : Fragment() {
                             viewModel.saveHillHold(false)*/
                     }
                 }
+                /*launch {
+                    carViewModel.cruise.collect { cruise ->
+                        d("CRUISE", "Cruise value : $cruise")
+                        val isCruise = cruise == 1
+                        viewModel.saveCruise(isCruise)
+                    }
+                }*/
             }
         }
     }
@@ -154,6 +165,7 @@ class PerformanceFragment : Fragment() {
         handleHillHoldUi(state)
         handleSurgeModeUi(state)
         handleAbsModeUi(state)
+        handleCruiseUi(state)
         handleTractionControl(state)
     }
 
@@ -374,6 +386,27 @@ class PerformanceFragment : Fragment() {
         ivDualSelect.isVisible = !state.isMonoAbs && isAbsMono
     }
 
+    private fun handleCruiseUi(state: PerformanceUiState) {
+        val isCruiseState = state.focusedState == FocusedState.CruiseControl
+        val selectedTxtClr = if (isCruiseState) R.color.white else R.color.black
+        val selectedBgClr = if (isCruiseState) R.color.activeSelectionRed else R.color.white
+        val unselectedTxtClr = R.color.unSelected
+        val unselectedBgClr = R.color.transparent
+        val actualOnTxtClr = if (state.isCruise) selectedTxtClr else unselectedTxtClr
+        val actualOnBgClr = if (state.isCruise) selectedBgClr else unselectedBgClr
+        val actualOffTxtClr = if (state.isCruise) unselectedTxtClr else selectedTxtClr
+        val actualOffBgClr = if (state.isCruise) unselectedBgClr else selectedBgClr
+        tvCruiseOff.apply {
+            setTextColor(ContextCompat.getColor(requireContext(), actualOffTxtClr))
+            setBackgroundColor(ContextCompat.getColor(requireContext(), actualOffBgClr))
+        }
+        tvCruiseOn.apply {
+            setTextColor(ContextCompat.getColor(requireContext(), actualOnTxtClr))
+            setBackgroundColor(ContextCompat.getColor(requireContext(), actualOnBgClr))
+        }
+        tvCruiseSelectOff.isVisible = state.isCruise && isCruiseState
+        tvCruiseSelectOn.isVisible = !state.isCruise && isCruiseState
+    }
 
     private fun initViews(view: View) {
         ivBack = view.findViewById(R.id.ivBack)
@@ -399,10 +432,14 @@ class PerformanceFragment : Fragment() {
         ivTc3Select = view.findViewById(R.id.ivTc3Select)
         ivMonoSelect = view.findViewById(R.id.ivMonoSelect)
         ivDualSelect = view.findViewById(R.id.ivDualSelect)
+        tvCruiseSelectOff = view.findViewById(R.id.ivCruiseSelectOff)
+        tvCruiseSelectOn = view.findViewById(R.id.ivCruiseSelectOn)
 
 
         tvMonoAbsCustom = view.findViewById(R.id.tvMonoAbsCustom)
         tvDualAbsCustom = view.findViewById(R.id.tvDualAbsCustom)
+        tvCruiseOff = view.findViewById(R.id.tvCruiseOff)
+        tvCruiseOn = view.findViewById(R.id.tvCruiseOn)
 
         ivTenLevelsSelect = view.findViewById(R.id.ivTenLevelsSelect)
         ivFourLevelsSelect = view.findViewById(R.id.ivFourLevelsSelect)
@@ -476,6 +513,7 @@ class PerformanceFragment : Fragment() {
                     FocusedState.HillHold -> viewModel.saveHillHold(!uiState.isHillHold)
                     FocusedState.BallisticPlus -> viewModel.saveBallisticPlus(!uiState.isBallisticPlus)
                     FocusedState.Abs -> viewModel.saveAbs(!uiState.isMonoAbs)
+                    FocusedState.CruiseControl -> viewModel.saveCruise(!uiState.isCruise)
                     FocusedState.TractionControl -> {
                         when (uiState.tractionLevel) {
                             getString(R.string.off) -> viewModel.saveTractionLevel(getString(R.string.tc1))
@@ -536,6 +574,7 @@ class PerformanceFragment : Fragment() {
                     FocusedState.HillHold -> viewModel.saveHillHold(!uiState.isHillHold)
                     FocusedState.BallisticPlus -> viewModel.saveBallisticPlus(!uiState.isBallisticPlus)
                     FocusedState.Abs -> viewModel.saveAbs(!uiState.isMonoAbs)
+                    FocusedState.CruiseControl -> viewModel.saveCruise(!uiState.isCruise)
                     FocusedState.TractionControl -> {
                         when (uiState.tractionLevel) {
                             getString(R.string.off) -> viewModel.saveTractionLevel(getString(R.string.tc3))
@@ -553,7 +592,8 @@ class PerformanceFragment : Fragment() {
                     FocusedState.RegenModes -> FocusedState.Regen
                     FocusedState.Regen -> FocusedState.HillHold
                     FocusedState.HillHold -> FocusedState.Abs
-                    FocusedState.Abs -> FocusedState.TractionControl
+                    FocusedState.Abs -> FocusedState.CruiseControl
+                    FocusedState.CruiseControl -> FocusedState.TractionControl
                     FocusedState.TractionControl -> FocusedState.BallisticPlus
 
                 }
@@ -567,7 +607,8 @@ class PerformanceFragment : Fragment() {
                     FocusedState.Regen -> FocusedState.RegenModes
                     FocusedState.HillHold -> FocusedState.Regen
                     FocusedState.Abs -> FocusedState.HillHold
-                    FocusedState.TractionControl -> FocusedState.Abs
+                    FocusedState.CruiseControl -> FocusedState.Abs
+                    FocusedState.TractionControl -> FocusedState.CruiseControl
                 }
                 viewModel.setFocusedState(previousState)
             }
@@ -652,6 +693,17 @@ class PerformanceFragment : Fragment() {
             viewModel.setFocusedState(FocusedState.Abs)
             viewModel.saveAbs(false)
         }
+        tvCruiseOff.setOnSoundClickListener(requireContext()){
+            viewModel.setFocusedState(FocusedState.CruiseControl)
+            viewModel.saveCruise(false)
+            writeCruiseToVcu(false)
+        }
+
+        tvCruiseOn.setOnSoundClickListener(requireContext()){
+            viewModel.setFocusedState(FocusedState.CruiseControl)
+            viewModel.saveCruise(true)
+            writeCruiseToVcu(true)
+        }
 
         tvTcOff.setOnSoundClickListener(requireContext()){
             viewModel.setFocusedState(FocusedState.TractionControl)
@@ -701,6 +753,13 @@ class PerformanceFragment : Fragment() {
         d("APP TO_VCU", "ABS value:$value")
         val packet = byteArrayOf(value)
         carViewModel.sendByteArrayProperty(0x2170037F, packet)
+    }
+
+    private fun writeCruiseToVcu(isCruise: Boolean) {
+        val value: Byte = if (isCruise) 0xEC.toByte() else 0xDC.toByte()
+        d("APP TO_VCU", "Cruise value:$value")
+        val packet = byteArrayOf(value)
+        carViewModel.sendByteArrayProperty(0x217002D0, packet)
     }
 
     private fun writeTractionToVcu(tc: String) {

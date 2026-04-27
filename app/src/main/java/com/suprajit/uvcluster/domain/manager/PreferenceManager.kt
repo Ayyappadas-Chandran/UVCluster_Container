@@ -75,6 +75,10 @@ class PreferenceManager(val sharedPreferenceRepository: SharedPreferenceReposito
     val isMonoAbs: Boolean
         get() = sharedPreferenceRepository.getPref(PREF_CUSTOM_MODE_ABS, true)
 
+    /** Cruise */
+    val isCruise: Boolean
+        get() = sharedPreferenceRepository.getPref(PREF_CUSTOM_CRUISE, true)
+
     /** Traction Control */
     val tractionControlLevel: String
         get() = sharedPreferenceRepository.getPref(PREF_CUSTOM_MODE_TC, "Off")
@@ -277,6 +281,11 @@ class PreferenceManager(val sharedPreferenceRepository: SharedPreferenceReposito
         sharedPreferenceRepository.savePref(PREF_CUSTOM_MODE_ABS, isMono)
     }
 
+    /** Save ABS mode */
+    fun saveCruise(isCruise: Boolean) {
+        sharedPreferenceRepository.savePref(PREF_CUSTOM_CRUISE, isCruise)
+    }
+
     /** Save Traction Control */
     fun saveTractionControl(tc: String) {
         sharedPreferenceRepository.savePref(PREF_CUSTOM_MODE_TC, tc)
@@ -344,6 +353,7 @@ class PreferenceManager(val sharedPreferenceRepository: SharedPreferenceReposito
         private const val PREF_MIRROR_ALERTS = "pref_mirror_alerts"
         private const val PREF_AUDIO_ALERTS = "pref_audio_alerts"
         private const val PREF_CUSTOM_MODE_ABS = "pref_custom_mode_abs"
+        private const val PREF_CUSTOM_CRUISE = "pref_custom_cruise"
         private const val PREF_CUSTOM_MODE_TC = "pref_custom_mode_tc"
         private const val PREF_REGEN_MODES = "pref_regen_modes"
         private const val PREF_REGEN_VALUE = "pref_regen_value"

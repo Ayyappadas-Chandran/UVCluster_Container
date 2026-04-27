@@ -35,16 +35,12 @@ class DisplayFragment : Fragment() {
     private lateinit var tvModeNight: TextView
     private lateinit var tvModeAuto: TextView
     private lateinit var tvAdjustBrightness: TextView
-    private lateinit var tvParallax: TextView
-    private lateinit var tvRadar: TextView
     private lateinit var ivDaySelectedRight: ImageView
     private lateinit var ivDaySelectedLeft: ImageView
     private lateinit var ivNightSelected: ImageView
     private lateinit var ivAutoModeSelected: ImageView
     private lateinit var ivAutoBrightnessSelected: ImageView
     private lateinit var ivManualBrightnessSelected: ImageView
-    private lateinit var ivParallaxSelect: ImageView
-    private lateinit var ivRadarSelect: ImageView
     private lateinit var sbBrightness: SeekBar
     private lateinit var llBrightnessBar: LinearLayout
     private lateinit var scrollView: NestedScrollView
@@ -91,16 +87,12 @@ class DisplayFragment : Fragment() {
         tvModeNight = view.findViewById(R.id.tvModeNight)
         tvModeAuto = view.findViewById(R.id.tvModeAuto)
         tvAdjustBrightness = view.findViewById(R.id.tvAdjustBrightness)
-        tvParallax = view.findViewById(R.id.tvParallax)
-        tvRadar = view.findViewById(R.id.tvRadar)
         ivDaySelectedRight = view.findViewById(R.id.ivDaySelectedRight)
         ivDaySelectedLeft = view.findViewById(R.id.ivDaySelectedLeft)
         ivNightSelected = view.findViewById(R.id.ivNightSelected)
         ivAutoModeSelected = view.findViewById(R.id.ivAutoModeSelected)
         ivAutoBrightnessSelected = view.findViewById(R.id.ivAutoBrightnessSelected)
         ivManualBrightnessSelected = view.findViewById(R.id.ivManualBrightnessSelected)
-        ivParallaxSelect = view.findViewById(R.id.ivParallaxSelect)
-        ivRadarSelect = view.findViewById(R.id.ivRadarSelect)
         sbBrightness = view.findViewById(R.id.sbBrightness)
         llBrightnessBar = view.findViewById(R.id.llBrightnessBar)
         scrollView = view.findViewById(R.id.scrollView)
@@ -122,10 +114,6 @@ class DisplayFragment : Fragment() {
                         (activity as MainActivity).checkSettingAndBrightness(progress)
                     }
 
-                    ButtonClickedState.Theme -> {
-                        handleButtonNavigationThemeHorizontal()
-                    }
-
                     ButtonClickedState.Mode -> {
                         when (viewModel.mode) {
                             getString(R.string.auto) -> tvModeDay.performClick()
@@ -142,9 +130,6 @@ class DisplayFragment : Fragment() {
                         handleButtonNavigationBrightnessHorizontal()
                     }
 
-                    ButtonClickedState.Theme -> {
-                        handleButtonNavigationThemeHorizontal()
-                    }
 
                     ButtonClickedState.AdjustBrightness -> {
                         val progress = (viewModel.brightnessLevel - 10).coerceAtLeast(0)
@@ -176,7 +161,8 @@ class DisplayFragment : Fragment() {
                         handleButtonNavigationBrightnessVertical()
                     }
 
-                    ButtonClickedState.Theme -> {
+
+                    ButtonClickedState.Mode -> {
                         buttonClickedState =
                             if (viewModel.isAutoBrightnessEnabled) ButtonClickedState.Brightness
                             else ButtonClickedState.AdjustBrightness
@@ -186,10 +172,6 @@ class DisplayFragment : Fragment() {
                             handleNavigationAdjustBrightnessVertical()
                         }
                     }
-
-                    ButtonClickedState.Mode -> {
-                        handleButtonNavigationThemeVertical()
-                    }
                 }
             }
 
@@ -197,23 +179,18 @@ class DisplayFragment : Fragment() {
                 when (buttonClickedState) {
                     ButtonClickedState.Brightness -> {
                         buttonClickedState =
-                            if (viewModel.isAutoBrightnessEnabled) ButtonClickedState.Theme
+                            if (viewModel.isAutoBrightnessEnabled) ButtonClickedState.Mode
                             else ButtonClickedState.AdjustBrightness
                         if (viewModel.isAutoBrightnessEnabled) {
-                            handleButtonNavigationThemeVertical()
+                            handleButtonNavigationModeVertical()
                         } else {
                             handleNavigationAdjustBrightnessVertical()
                         }
                     }
 
                     ButtonClickedState.AdjustBrightness -> {
-                        handleButtonNavigationThemeVertical()
-                        handleBrightnessSeek(R.color.white, R.drawable.thumb_white)
-                    }
-
-                    ButtonClickedState.Theme -> {
                         handleButtonNavigationModeVertical()
-
+                        handleBrightnessSeek(R.color.white, R.drawable.thumb_white)
                     }
 
                     ButtonClickedState.Mode -> {
@@ -234,14 +211,6 @@ class DisplayFragment : Fragment() {
         }
     }
 
-    private fun handleButtonNavigationThemeHorizontal() {
-        if (viewModel.isParallaxEnabled) {
-            tvRadar.performClick()
-        } else {
-            tvParallax.performClick()
-        }
-    }
-
     private fun handleButtonNavigationBrightnessHorizontal() {
         if (viewModel.isAutoBrightnessEnabled) {
             tvManualBrightness.performClick()
@@ -250,10 +219,6 @@ class DisplayFragment : Fragment() {
         }
     }
 
-    private fun handleButtonNavigationThemeVertical() {
-        buttonClickedState = ButtonClickedState.Theme
-        if (viewModel.isParallaxEnabled) tvParallax.performClick() else tvRadar.performClick()
-    }
 
     private fun handleButtonNavigationBrightnessVertical() {
         scrollView.post {
@@ -349,20 +314,6 @@ class DisplayFragment : Fragment() {
             changeMode(getString(R.string.auto))
             sharedViewModel.handleSettingsChildClick(true)
         }
-        tvParallax.setOnSoundClickListener(requireContext()) {
-            buttonClickedState = ButtonClickedState.Theme
-            viewModel.saveTheme(true)
-            sharedViewModel.handleSettingsChildClick(true)
-            clickedUiState = ClickedUiState.Theme
-            handleUi()
-        }
-        tvRadar.setOnSoundClickListener(requireContext()) {
-            buttonClickedState = ButtonClickedState.Theme
-            viewModel.saveTheme(false)
-            sharedViewModel.handleSettingsChildClick(true)
-            clickedUiState = ClickedUiState.Theme
-            handleUi()
-        }
     }
 
     private fun handleNavigationAdjustBrightnessVertical() {
@@ -435,12 +386,6 @@ class DisplayFragment : Fragment() {
                 resetTheme()
             }
 
-            ClickedUiState.Theme -> {
-                handleThemeClick()
-                resetBrightness()
-                resetMode()
-            }
-
             ClickedUiState.Mode -> {
                 handleModeClick()
                 resetBrightness()
@@ -500,26 +445,18 @@ class DisplayFragment : Fragment() {
      * Update the UI based on the current theme state.
      */
     private fun handleThemeClick() {
-        ivParallaxSelect.isVisible = viewModel.isParallaxEnabled
-        ivRadarSelect.isVisible = !viewModel.isParallaxEnabled
         val selectedTextColor = ContextCompat.getColor(requireContext(), R.color.white)
         val selectedBackgroundColor =
             ContextCompat.getColor(requireContext(), R.color.activeSelectionRed)
         val unselectedTextColor = ContextCompat.getColor(requireContext(), R.color.unSelected)
         val unselectedBackgroundColor =
             ContextCompat.getColor(requireContext(), R.color.transparent)
-        tvParallax.setTextColor(if (viewModel.isParallaxEnabled) selectedTextColor else unselectedTextColor)
-        tvParallax.setBackgroundColor(if (viewModel.isParallaxEnabled) selectedBackgroundColor else unselectedBackgroundColor)
-        tvRadar.setTextColor(if (!viewModel.isParallaxEnabled) selectedTextColor else unselectedTextColor)
-        tvRadar.setBackgroundColor(if (!viewModel.isParallaxEnabled) selectedBackgroundColor else unselectedBackgroundColor)
     }
 
     /**
      * Reset the UI to its initial state.
      */
     private fun resetTheme() {
-        ivParallaxSelect.isVisible = false
-        ivRadarSelect.isVisible = false
         val selectedTextColor = ContextCompat.getColor(
             requireContext(),
             R.color.black
@@ -531,10 +468,6 @@ class DisplayFragment : Fragment() {
         val unselectedTextColor = ContextCompat.getColor(requireContext(), R.color.unSelected)
         val unselectedBackgroundColor =
             ContextCompat.getColor(requireContext(), R.color.transparent)
-        tvParallax.setTextColor(if (viewModel.isParallaxEnabled) selectedTextColor else unselectedTextColor)
-        tvParallax.setBackgroundColor(if (viewModel.isParallaxEnabled) selectBackgroundColor else unselectedBackgroundColor)
-        tvRadar.setTextColor(if (!viewModel.isParallaxEnabled) selectedTextColor else unselectedTextColor)
-        tvRadar.setBackgroundColor(if (!viewModel.isParallaxEnabled) selectBackgroundColor else unselectedBackgroundColor)
     }
 
     /**
@@ -626,14 +559,12 @@ class DisplayFragment : Fragment() {
      */
     sealed class ClickedUiState() {
         object Brightness : ClickedUiState()
-        object Theme : ClickedUiState()
         object Mode : ClickedUiState()
     }
 
     enum class ButtonClickedState {
         Brightness,
         AdjustBrightness,
-        Theme,
         Mode
     }
 }

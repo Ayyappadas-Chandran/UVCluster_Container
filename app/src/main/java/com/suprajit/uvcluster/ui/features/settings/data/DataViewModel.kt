@@ -12,7 +12,7 @@ data class UiState(val state: Boolean, val isButton: Boolean)
 class DataViewModel(private val dataRepository: DataRepository) : ViewModel() {
     private var _dataStateChange: MutableStateFlow<UiState> = MutableStateFlow(
         UiState(
-            state = false,
+            state = true,
             isButton = false
         )
     )

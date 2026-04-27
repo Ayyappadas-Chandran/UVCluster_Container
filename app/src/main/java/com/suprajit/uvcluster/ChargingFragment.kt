@@ -129,7 +129,7 @@ class ChargingFragment : Fragment() {
                     carViewModel.chargeCtx.collect { chargeCtx ->
                         var remainTime=chargeCtx.chargerRemainingTime
                         d("CharingScreen","remainTime: $remainTime")
-                        handleRemainingTime(remainTime.toInt())
+                        //handleRemainingTime(remainTime.toInt())
 
 
                     }
@@ -166,6 +166,8 @@ class ChargingFragment : Fragment() {
                         val batterySoc = (imxDbgMsg.soc.toInt() and 0xFF)
                         tvCharge.text = "$batterySoc"
                         pbBattery.progress = batterySoc.toFloat()
+                        var remainTime = imxDbgMsg.chargeTtf
+                        handleRemainingTime(remainTime.toInt())
 
                     }
                 }

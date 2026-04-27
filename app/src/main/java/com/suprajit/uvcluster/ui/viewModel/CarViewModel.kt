@@ -66,6 +66,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.NonCancellable.isActive
 import androidx.lifecycle.viewModelScope
+import com.suprajit.uvcluster.utils.Utilities.PROP_ID_CRUISE_CONTROL
 import kotlinx.coroutines.launch
 
 
@@ -160,6 +161,8 @@ class CarViewModel(private val carRepository: CarRepository?) : ViewModel() {
 
     private val _mcNoArm = MutableSharedFlow<IntArray>(replay = 0, extraBufferCapacity = 8)
     val mcNoArm: SharedFlow<IntArray> = _mcNoArm.asSharedFlow()
+    private val _cruise = MutableStateFlow(0)
+    val cruise: StateFlow<Int> = _cruise.asStateFlow()
 
     private val _fotaUpdate = MutableStateFlow(intArrayOf())
     val fotaUpdate: StateFlow<IntArray> = _fotaUpdate.asStateFlow()
@@ -375,6 +378,13 @@ class CarViewModel(private val carRepository: CarRepository?) : ViewModel() {
                     d("VCU_ALERT_SYSTEM", "[VHAL] Event Received: mcNoArm -> ${mcNoArm.joinToString()}")
                     // Use tryEmit for SharedFlow
                     _mcNoArm.tryEmit(mcNoArm)
+                }
+
+                PROP_ID_CRUISE_CONTROL -> {
+                    val cruise = toInt(propertyValue.value)
+                    d("VHALData", "[VHAL] Event Received: CRUISE -> $cruise")
+                    // Use tryEmit for SharedFlow
+                    _cruise.tryEmit(cruise)
                 }
 
                 PROP_ID_MC_THERMAL -> {

@@ -221,7 +221,7 @@
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="110dp"
-            android:layout_height="29dp"
+            android:layout_height="32dp"
             android:layout_marginStart="-10dp"
             android:orientation="horizontal"
             app:layout_constraintBottom_toBottomOf="parent"

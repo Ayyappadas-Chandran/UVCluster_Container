@@ -835,6 +835,83 @@
             </androidx.constraintlayout.widget.ConstraintLayout>
 
             <com.suprajit.uvcluster.ui.customWidget.BrutalTypeTextView
+                android:id="@+id/tvCruise"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/cruise_control"
+                android:textColor="@color/unSelectedTitle"
+                android:textFontWeight="400"
+                android:textSize="24sp"
+                android:layout_marginTop="24dp"
+                app:layout_constraintStart_toStartOf="@id/llAbs"
+                app:layout_constraintTop_toBottomOf="@id/llAbs" />
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/llCruise"
+                android:layout_width="976dp"
+                android:layout_height="80dp"
+                android:layout_marginTop="16dp"
+                android:background="@drawable/bg_stroke"
+                android:orientation="horizontal"
+                app:layout_constraintStart_toStartOf="@id/tvCruise"
+                app:layout_constraintTop_toBottomOf="@id/tvCruise">
+
+                <com.suprajit.uvcluster.ui.customWidget.BrutalTypeTextView
+                    android:id="@+id/tvCruiseOff"
+                    android:layout_width="480dp"
+                    android:layout_height="64dp"
+                    android:layout_marginStart="8dp"
+                    android:gravity="center"
+                    android:text="@string/off"
+                    android:textColor="@color/unSelected"
+                    android:textFontWeight="500"
+                    android:textSize="24sp"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+                <ImageView
+                    android:id="@+id/ivCruiseSelectOn"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:layout_marginStart="8dp"
+                    android:contentDescription="@string/cruise_off_select"
+                    android:src="@drawable/ic_selection"
+                    android:visibility="invisible"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintStart_toEndOf="@id/tvCruiseOff"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+                <ImageView
+                    android:id="@+id/ivCruiseSelectOff"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:layout_marginEnd="8dp"
+                    android:contentDescription="@string/cruise_on_select"
+                    android:rotation="180"
+                    android:src="@drawable/ic_selection"
+                    android:visibility="invisible"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toStartOf="@id/tvCruiseOn"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+                <com.suprajit.uvcluster.ui.customWidget.BrutalTypeTextView
+                    android:id="@+id/tvCruiseOn"
+                    android:layout_width="480dp"
+                    android:layout_height="64dp"
+                    android:gravity="center"
+                    android:text="@string/on"
+                    android:textColor="@color/unSelected"
+                    android:textFontWeight="500"
+                    android:textSize="24sp"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintStart_toEndOf="@id/tvCruiseOff"
+                    app:layout_constraintTop_toTopOf="parent" />
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+            <com.suprajit.uvcluster.ui.customWidget.BrutalTypeTextView
                 android:id="@+id/tvTractionControlCustom"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -844,8 +921,8 @@
                 android:textColor="@color/unSelectedTitle"
                 android:textFontWeight="400"
                 android:textSize="24sp"
-                app:layout_constraintStart_toStartOf="@id/llAbs"
-                app:layout_constraintTop_toBottomOf="@id/llAbs" />
+                app:layout_constraintStart_toStartOf="@id/llCruise"
+                app:layout_constraintTop_toBottomOf="@id/llCruise" />
 
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:id="@+id/llTractionControl"
@@ -854,7 +931,7 @@
                 android:layout_marginTop="16dp"
                 android:background="@drawable/bg_stroke"
                 android:padding="8dp"
-                app:layout_constraintStart_toStartOf="@id/tvAbsCustom"
+                app:layout_constraintStart_toStartOf="@id/tvCruiseOn"
                 app:layout_constraintTop_toBottomOf="@id/tvTractionControlCustom">
 
                 <com.suprajit.uvcluster.ui.customWidget.BrutalTypeTextView
